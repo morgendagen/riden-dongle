@@ -27,7 +27,7 @@ The firmware has been tested with various tools and libraries:
 - Modbus TCP bridge.
 - SCPI control.
 - Web interface to configure the dongle.
-- Web Portal to set up WiFi as well as do firmware updates.
+- Web Portal to set up WiFi as well as do firmware updates (currently requires 2MB of flash memory).
 - Automatically set power supply clock based on NTP.
 - mDNS advertising.
 
