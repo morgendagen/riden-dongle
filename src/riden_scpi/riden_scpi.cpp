@@ -290,11 +290,15 @@ scpi_result_t RidenScpi::SystemDateQ(scpi_t *context)
 {
     RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
     tm clock;
-    if (!ridenScpi->ridenModbus.get_clock(clock)) {
+    if (ridenScpi->ridenModbus.get_clock(clock)) {
         int32_t result[] = {clock.tm_year + 1900, clock.tm_mon + 1, clock.tm_mday};
-        SCPI_ResultArrayInt32(context, result, 3, SCPI_FORMAT_NORMAL);
+        SCPI_ResultUInt16(context, clock.tm_year + 1900);
+        SCPI_ResultUInt16(context, clock.tm_mon + 1);
+        SCPI_ResultUInt16(context, clock.tm_mday);
+        LOG_LN("SystemDateQ");
         return SCPI_RES_OK;
     } else {
+        LOG_LN("SystemDateQ failure");
         SCPI_ErrorPush(context, SCPI_ERROR_COMMAND);
         return SCPI_RES_ERR;
     }
@@ -319,9 +323,11 @@ scpi_result_t RidenScpi::SystemTimeQ(scpi_t *context)
 {
     RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
     tm clock;
-    if (!ridenScpi->ridenModbus.get_clock(clock)) {
+    if (ridenScpi->ridenModbus.get_clock(clock)) {
         int32_t result[] = {clock.tm_hour, clock.tm_min, clock.tm_sec};
-        SCPI_ResultArrayInt32(context, result, 3, SCPI_FORMAT_NORMAL);
+        SCPI_ResultUInt16(context, clock.tm_hour);
+        SCPI_ResultUInt16(context, clock.tm_min);
+        SCPI_ResultUInt16(context, clock.tm_sec);
         return SCPI_RES_OK;
     } else {
         SCPI_ErrorPush(context, SCPI_ERROR_COMMAND);
