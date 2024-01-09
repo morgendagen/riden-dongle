@@ -12,7 +12,7 @@
 
 using namespace RidenDongle;
 
-static String voltageToString(double voltage)
+static String voltage2string(double voltage)
 {
     if (voltage < 1) {
         return String(voltage * 1000, 0) + " mV";
@@ -21,7 +21,7 @@ static String voltageToString(double voltage)
     }
 }
 
-static String currentToString(double current)
+static String current2string(double current)
 {
     if (current < 1) {
         return String(current * 1000, 0) + " mA";
@@ -30,7 +30,7 @@ static String currentToString(double current)
     }
 }
 
-static String powerToString(double power)
+static String power2string(double power)
 {
     if (power < 1) {
         return String(power * 1000, 0) + " mW";
@@ -39,7 +39,7 @@ static String powerToString(double power)
     }
 }
 
-static String protectionToString(Protection protection)
+static String protection2string(Protection protection)
 {
     switch (protection) {
     case Protection::OVP:
@@ -51,7 +51,7 @@ static String protectionToString(Protection protection)
     }
 }
 
-static String outputModeToString(OutputMode output_mode)
+static String outputmode2string(OutputMode output_mode)
 {
     switch (output_mode) {
     case OutputMode::CONSTANT_VOLTAGE:
@@ -113,14 +113,14 @@ void RidenHttpServer::handle_get_psu()
         server.sendContent("            <table class='info'>");
         server.sendContent("                <tbody>");
         send_info_row("Output", all_values.output_on ? "On" : "Off");
-        send_info_row("Set", voltageToString(all_values.voltage_set) + " / " + currentToString(all_values.current_set));
+        send_info_row("Set", voltage2string(all_values.voltage_set) + " / " + current2string(all_values.current_set));
         send_info_row("Out",
-                      voltageToString(all_values.voltage_out) + " / " + currentToString(all_values.current_out) + " / " + powerToString(all_values.power_out));
-        send_info_row("Protection", protectionToString(all_values.protection));
-        send_info_row("Output Mode", outputModeToString(all_values.output_mode));
+                      voltage2string(all_values.voltage_out) + " / " + current2string(all_values.current_out) + " / " + power2string(all_values.power_out));
+        send_info_row("Protection", protection2string(all_values.protection));
+        send_info_row("Output Mode", outputmode2string(all_values.output_mode));
         send_info_row("Current Range", String(all_values.current_range, 10));
         send_info_row("Battery Mode", all_values.is_battery_mode ? "Yes" : "No");
-        send_info_row("Voltage Battery", voltageToString(all_values.voltage_battery));
+        send_info_row("Voltage Battery", voltage2string(all_values.voltage_battery));
         send_info_row("Ah", String(all_values.ah, 3) + " Ah");
         send_info_row("Wh", String(all_values.wh, 3) + " Wh");
         server.sendContent("                </tbody>");
@@ -133,7 +133,7 @@ void RidenHttpServer::handle_get_psu()
         server.sendContent("            <h2>Environment</h2>");
         server.sendContent("            <table class='info'>");
         server.sendContent("                <tbody>");
-        send_info_row("Voltage In", voltageToString(all_values.voltage_in));
+        send_info_row("Voltage In", voltage2string(all_values.voltage_in));
         send_info_row("System Temperature", String(all_values.system_temperature_celsius, 0) + "&deg;C" + " / " + String(all_values.system_temperature_fahrenheit, 0) + "&deg;F");
         send_info_row("Probe Temperature", String(all_values.probe_temperature_celsius, 0) + "&deg;C" + " / " + String(all_values.probe_temperature_fahrenheit, 0) + "&deg;F");
         server.sendContent("                </tbody>");
@@ -193,10 +193,10 @@ void RidenHttpServer::handle_get_psu()
         server.sendContent("                <tbody>");
         for (int preset = 0; preset < NUMBER_OF_PRESETS; preset++) {
             server.sendContent("<tr><th colspan='2' style='text-align:left'>Preset " + String(preset + 1, 10) + " (M" + String(preset + 1, 10) + ")" + "</th></tr>");
-            send_info_row("Preset Voltage", voltageToString(all_values.presets[preset].voltage));
-            send_info_row("Preset Current", currentToString(all_values.presets[preset].current));
-            send_info_row("Preset OVP", voltageToString(all_values.presets[preset].over_voltage_protection));
-            send_info_row("Preset OCP", currentToString(all_values.presets[preset].over_current_protection));
+            send_info_row("Preset Voltage", voltage2string(all_values.presets[preset].voltage));
+            send_info_row("Preset Current", current2string(all_values.presets[preset].current));
+            send_info_row("Preset OVP", voltage2string(all_values.presets[preset].over_voltage_protection));
+            send_info_row("Preset OCP", current2string(all_values.presets[preset].over_current_protection));
         }
         server.sendContent("                </tbody>");
         server.sendContent("            </table>");
