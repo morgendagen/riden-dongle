@@ -724,22 +724,21 @@ uint16_t RidenScpi::port()
     return tcpServer.port();
 }
 
-std::list<String> RidenScpi::get_connected_clients()
+std::list<IPAddress> RidenScpi::get_connected_clients()
 {
-    std::list<String> connected_clients;
+    std::list<IPAddress> connected_clients;
     for (byte i = 0; i < SCPI_MAX_CLIENTS; i++) {
         if (clients[i] && clients[i].connected()) {
-            LOG_LN(clients[i].remoteIP());
-            connected_clients.push_back(clients[i].remoteIP().toString());
+            connected_clients.push_back(clients[i].remoteIP());
         }
     }
     return connected_clients;
 }
 
-void RidenScpi::disconnect_client(String ip)
+void RidenScpi::disconnect_client(const IPAddress &ip)
 {
     for (byte i = 0; i < SCPI_MAX_CLIENTS; i++) {
-        if (clients[i] && clients[i].connected() && clients[i].remoteIP().toString() == ip) {
+        if (clients[i] && clients[i].connected() && clients[i].remoteIP() == ip) {
             clients[i].stop();
         }
     }

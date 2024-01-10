@@ -33,17 +33,21 @@ class RidenHttpServer
     void handle_psu_get();
     void handle_config_get();
     void handle_config_post();
+    void handle_disconnect_client_post();
     void handle_reboot_dongle_get();
     void handle_not_found();
 
+    void send_redirect_root();
     void send_redirect_self();
 
     void send_network_info();
     void send_services();
     void send_power_supply_info();
+    void send_connected_clients();
 
     void send_as_chunks(const char *str);
-    void send_info_row(String key, String value);
+    void send_info_row(const String key, const String value);
+    void send_client_row(const IPAddress &ip, const String protocol);
 };
 
 } // namespace RidenDongle
