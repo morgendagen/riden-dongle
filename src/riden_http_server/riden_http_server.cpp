@@ -63,6 +63,32 @@ static String outputmode_to_string(OutputMode output_mode)
     }
 }
 
+static String language_to_string(uint16_t language_id)
+{
+    String language;
+    switch (language_id) {
+    case 0:
+        language = "English";
+        break;
+    case 1:
+        language = "Chinese";
+        break;
+    case 2:
+        language = "German";
+        break;
+    case 3:
+        language = "French";
+        break;
+    case 4:
+        language = "Russian";
+        break;
+    default:
+        language = "Unknown (" + String(language_id, 10) + ")";
+        break;
+    }
+    return language;
+}
+
 bool RidenHttpServer::begin()
 {
     MDNS.addService("lxi", "tcp", port()); // allows discovery by lxi-tools
@@ -160,7 +186,7 @@ void RidenHttpServer::handle_psu_get()
         send_info_row("Power on boot", all_values.is_power_on_boot ? "Yes" : "No");
         send_info_row("Buzzer enabled", all_values.is_buzzer_enabled ? "Yes" : "No");
         send_info_row("Logo", all_values.is_logo ? "Yes" : "No");
-        send_info_row("Language", String(all_values.language, 10));
+        send_info_row("Language", language_to_string(all_values.language));
         send_info_row("Brightness", String(all_values.brightness, 10));
         server.sendContent("                </tbody>");
         server.sendContent("            </table>");
