@@ -12,6 +12,9 @@
 
 using namespace RidenDongle;
 
+static const String scpi_protocol = "SCPI";
+static const String modbustcp_protocol = "Modbus TCP";
+
 static String voltage_to_string(double voltage)
 {
     if (voltage < 1) {
@@ -98,6 +101,7 @@ bool RidenHttpServer::begin()
     server.on("/psu/", HTTP_GET, std::bind(&RidenHttpServer::handle_psu_get, this));
     server.on("/config/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_config_get, this));
     server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
+    server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
     server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
     server.onNotFound(std::bind(&RidenHttpServer::handle_not_found, this));
     server.begin(port());
@@ -123,6 +127,7 @@ void RidenHttpServer::handle_root_get()
         send_power_supply_info();
         send_network_info();
         send_services();
+        send_connected_clients();
     } else {
         server.sendContent(HTML_NO_CONNECTION_BODY);
     }
@@ -259,6 +264,22 @@ void RidenHttpServer::handle_config_post()
     send_redirect_self();
 }
 
+void RidenHttpServer::handle_disconnect_client_post()
+{
+    String ip_string = server.arg("ip");
+    String protocol = server.arg("protocol");
+    IPAddress ip;
+    if (ip.fromString(ip_string)) {
+        if (protocol == scpi_protocol) {
+            scpi.disconnect_client(ip);
+        } else if (protocol == modbustcp_protocol) {
+            bridge.disconnect_client(ip);
+        }
+    }
+
+    send_redirect_root();
+}
+
 void RidenHttpServer::handle_reboot_dongle_get()
 {
     String config_arg = server.arg("config_portal");
@@ -289,6 +310,19 @@ void RidenHttpServer::send_as_chunks(const char *str)
         size_t end_pos = min(start_pos + chunk_length, length);
         server.sendContent(&(str[start_pos]), end_pos - start_pos);
     }
+}
+
+void RidenHttpServer::send_redirect_root()
+{
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", "<html>");
+    server.sendContent("<body>");
+    server.sendContent("<script>");
+    server.sendContent("  window.location = '/';");
+    server.sendContent("</script>");
+    server.sendContent("</body>");
+    server.sendContent("</html>");
+    server.sendContent("");
 }
 
 void RidenHttpServer::send_redirect_self()
@@ -367,7 +401,46 @@ void RidenHttpServer::send_services()
     server.sendContent("        </div>");
 }
 
-void RidenHttpServer::send_info_row(String key, String value)
+void RidenHttpServer::send_connected_clients()
+{
+    server.sendContent("        <div class='box'>");
+    server.sendContent("            <h2>Connected Clients</h2>");
+    server.sendContent("            <table class='clients'>");
+    server.sendContent("                <thead><tr>");
+    server.sendContent("                <th>IP address</th>");
+    server.sendContent("                <th>Protocol</th>");
+    server.sendContent("                <th></th>");
+    server.sendContent("                </tr></thead>");
+    server.sendContent("                <tbody>");
+    for (auto const &ip : scpi.get_connected_clients()) {
+        send_client_row(ip, scpi_protocol);
+    }
+    for (auto const &ip : bridge.get_connected_clients()) {
+        send_client_row(ip, modbustcp_protocol);
+    }
+    server.sendContent("                </tbody>");
+    server.sendContent("            </table>");
+    server.sendContent("        </div>");
+}
+
+void RidenHttpServer::send_client_row(const IPAddress &ip, const String protocol)
+{
+    server.sendContent("<tr>");
+    server.sendContent("<td>");
+    server.sendContent(ip.toString());
+    server.sendContent("</td>");
+    server.sendContent("<td>");
+    server.sendContent(protocol);
+    server.sendContent("</td>");
+    server.sendContent("<td><form method='post' action='/disconnect_client/'>");
+    server.sendContent("<input type='hidden' name='ip' value='" + ip.toString() + "'>");
+    server.sendContent("<input type='hidden' name='protocol' value='" + protocol + "'>");
+    server.sendContent("<input type='submit' value='Disconnect'>");
+    server.sendContent("</form></td>");
+    server.sendContent("</tr>");
+}
+
+void RidenHttpServer::send_info_row(const String key, const String value)
 {
     server.sendContent("                    <tr>");
     server.sendContent("                        <th>");

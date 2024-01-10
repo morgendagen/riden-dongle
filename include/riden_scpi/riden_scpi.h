@@ -29,8 +29,8 @@ class RidenScpi
     bool loop();
 
     uint16_t port();
-    std::list<String> get_connected_clients();
-    void disconnect_client(String ip);
+    std::list<IPAddress> get_connected_clients();
+    void disconnect_client(const IPAddress &ip);
 
   private:
     RidenModbus &ridenModbus;

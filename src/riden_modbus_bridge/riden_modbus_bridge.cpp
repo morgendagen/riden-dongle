@@ -52,6 +52,17 @@ uint16_t RidenModbusBridge::port()
     return MODBUSTCP_PORT;
 }
 
+std::list<IPAddress> RidenModbusBridge::get_connected_clients()
+{
+    return modbus_tcp.get_connected_clients();
+}
+
+void RidenModbusBridge::disconnect_client(const IPAddress &ip)
+{
+    LOG_LN("RidenModbusBridge::disconnect_client");
+    modbus_tcp.disconnect_client(ip);
+}
+
 /**
  * Data received from the TCP-end is forwarded to ModbusRTU,
  * which in turn forwards it to the power supply.
@@ -118,4 +129,25 @@ Modbus::ResultCode modbus_tcp_raw_callback(uint8_t *data, uint8_t len, void *cus
 Modbus::ResultCode modbus_rtu_raw_callback(uint8_t *data, uint8_t len, void *custom)
 {
     return one_and_only->modbus_rtu_raw_callback(data, len, custom);
+}
+
+std::list<IPAddress> RidenModbusTCP::get_connected_clients()
+{
+    std::list<IPAddress> connected_clients;
+    for (int i = 0; i < MODBUSIP_MAX_CLIENTS; i++) {
+        if (tcpclient[i] != nullptr && tcpclient[i]->connected()) {
+            connected_clients.push_back(tcpclient[i]->remoteIP());
+        }
+    }
+    return connected_clients;
+}
+
+void RidenModbusTCP::disconnect_client(const IPAddress &ip)
+{
+    int8_t n = getMaster(ip);
+    if (n != -1) {
+        tcpclient[n]->flush();
+        delete tcpclient[n];
+        tcpclient[n] = nullptr;
+    }
 }
