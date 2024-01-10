@@ -18,9 +18,10 @@ namespace RidenDongle
 class RidenHttpServer
 {
   public:
-    RidenHttpServer(RidenModbus &modbus, RidenScpi &scpi, RidenModbusBridge &bridge) : modbus(modbus), scpi(scpi), bridge(bridge), server(HTTP_RAW_PORT) {}
+    explicit RidenHttpServer(RidenModbus &modbus, RidenScpi &scpi, RidenModbusBridge &bridge) : modbus(modbus), scpi(scpi), bridge(bridge), server(HTTP_RAW_PORT) {}
     bool begin();
     void loop(void);
+    uint16_t port();
 
   private:
     RidenModbus &modbus;
@@ -28,16 +29,15 @@ class RidenHttpServer
     RidenModbusBridge &bridge;
     ESP8266WebServer server;
 
-    void get_root();
-    void post_root();
-    void handle_get_psu();
-    void get_config();
-    void post_config();
-    void reboot_dongle();
+    void handle_root_get();
+    void handle_psu_get();
+    void handle_config_get();
+    void handle_config_post();
+    void handle_reboot_dongle_get();
     void handle_not_found();
+
     void send_redirect_self();
 
-    void send_connected_clients();
     void send_network_info();
     void send_services();
     void send_power_supply_info();

@@ -28,8 +28,8 @@ class RidenConfig
     bool get_and_reset_config_portal_on_boot();
 
   private:
-    String tz_name;
-    bool config_portal_on_boot;
+    String tz_name = "";
+    bool config_portal_on_boot = false;
 };
 
 extern RidenConfig riden_config;

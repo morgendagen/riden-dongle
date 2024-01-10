@@ -151,7 +151,7 @@ bool RidenModbus::get_all_values(AllValues &all_values)
     all_values.calibration.I_BACK_SCALE = values[+Register::I_BACK_SCALE];
     // Presets - M0 is ignored
     for (int index = 0; index < NUMBER_OF_PRESETS; index++) {
-        values_to_preset(&(values[+Register::M0_V + 4 * (index + 1)]), all_values.presets[index]);
+        values_to_preset(all_values.presets[index], &(values[+Register::M0_V + 4 * (index + 1)]));
     }
 
     return true;
@@ -207,7 +207,7 @@ bool RidenModbus::get_voltage_set(double &voltage)
     return read_voltage(Register::VoltageSet, voltage);
 }
 
-bool RidenModbus::set_voltage_set(double voltage)
+bool RidenModbus::set_voltage_set(const double voltage)
 {
     return write_voltage(Register::VoltageSet, voltage);
 }
@@ -217,7 +217,7 @@ bool RidenModbus::get_current_set(double &current)
     return read_current(Register::CurrentSet, current);
 }
 
-bool RidenModbus::set_current_set(double current)
+bool RidenModbus::set_current_set(const double current)
 {
     return write_current(Register::CurrentSet, current);
 }
@@ -267,12 +267,12 @@ bool RidenModbus::get_output_on(bool &result)
     return read_boolean(Register::Output, result);
 }
 
-bool RidenModbus::set_output_on(bool on)
+bool RidenModbus::set_output_on(const bool on)
 {
     return write_boolean(Register::Output, on);
 }
 
-bool RidenModbus::set_preset(uint8_t index)
+bool RidenModbus::set_preset(const uint8_t index)
 {
     if (index < 1 || index - 1 >= NUMBER_OF_PRESETS) {
         return false;
@@ -347,20 +347,20 @@ bool RidenModbus::get_clock(tm &time)
     return true;
 }
 
-bool RidenModbus::set_clock(tm time)
+bool RidenModbus::set_clock(const tm time)
 {
     uint16_t values[6];
     tm_to_values(values, time);
     return write_holding_registers(Register::Year, values, 6);
 }
 
-bool RidenModbus::set_date(uint16_t year, uint16_t month, uint16_t day)
+bool RidenModbus::set_date(const uint16_t year, const uint16_t month, const uint16_t day)
 {
     uint16_t values[3] = {year, month, day};
     return write_holding_registers(Register::Year, values, 3);
 }
 
-bool RidenModbus::set_time(uint8_t hour, uint8_t minute, uint8_t second)
+bool RidenModbus::set_time(const uint8_t hour, const uint8_t minute, const uint8_t second)
 {
     uint16_t values[3] = {hour, minute, second};
     return write_holding_registers(Register::Hour, values, 3);
@@ -371,7 +371,7 @@ bool RidenModbus::is_take_ok(bool &take_ok)
     return read_boolean(Register::TakeOk, take_ok);
 }
 
-bool RidenModbus::set_take_ok(bool take_ok)
+bool RidenModbus::set_take_ok(const bool take_ok)
 {
     return write_boolean(Register::TakeOk, take_ok);
 }
@@ -381,7 +381,7 @@ bool RidenModbus::is_take_out(bool &take_out)
     return read_boolean(Register::TakeOut, take_out);
 }
 
-bool RidenModbus::set_take_out(bool take_out)
+bool RidenModbus::set_take_out(const bool take_out)
 {
     return write_boolean(Register::TakeOut, take_out);
 }
@@ -391,7 +391,7 @@ bool RidenModbus::is_power_on_boot(bool &power_on_boot)
     return read_boolean(Register::PowerOnBoot, power_on_boot);
 }
 
-bool RidenModbus::set_power_on_boot(bool power_on_boot)
+bool RidenModbus::set_power_on_boot(const bool power_on_boot)
 {
     return write_boolean(Register::PowerOnBoot, power_on_boot);
 }
@@ -401,7 +401,7 @@ bool RidenModbus::is_buzzer_enabled(bool &buzzer)
     return read_boolean(Register::Buzzer, buzzer);
 }
 
-bool RidenModbus::set_buzzer_enabled(bool buzzer)
+bool RidenModbus::set_buzzer_enabled(const bool buzzer)
 {
     return write_boolean(Register::Buzzer, buzzer);
 }
@@ -411,7 +411,7 @@ bool RidenModbus::is_logo(bool &logo)
     return read_boolean(Register::Logo, logo);
 }
 
-bool RidenModbus::set_logo(bool logo)
+bool RidenModbus::set_logo(const bool logo)
 {
     return write_boolean(Register::Logo, logo);
 }
@@ -421,7 +421,7 @@ bool RidenModbus::get_language(uint16_t &language)
     return read_holding_registers(Register::Language, &language);
 }
 
-bool RidenModbus::set_language(uint16_t language)
+bool RidenModbus::set_language(const uint16_t language)
 {
     return write_holding_register(Register::Language, language);
 }
@@ -436,7 +436,7 @@ bool RidenModbus::get_brightness(uint8_t &brightness)
     return true;
 }
 
-bool RidenModbus::set_brightness(uint8_t brightness)
+bool RidenModbus::set_brightness(const uint8_t brightness)
 {
     return write_holding_register(Register::Brightness, brightness);
 }
@@ -459,7 +459,7 @@ bool RidenModbus::get_calibration(Calibration &calibration)
     return true;
 }
 
-bool RidenModbus::set_calibration(Calibration calibration)
+bool RidenModbus::set_calibration(const Calibration calibration)
 {
     uint16_t values[8] = {
         calibration.V_OUT_ZERO,
@@ -476,18 +476,18 @@ bool RidenModbus::set_calibration(Calibration calibration)
 
 // Presets
 
-bool RidenModbus::set_preset(uint8_t index, Preset preset)
+bool RidenModbus::set_preset(const uint8_t index, const Preset &preset)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
     uint16_t values[4];
-    preset_to_values(preset, values);
+    preset_to_values(values, preset);
     Register reg = Register(+Register::M0_V + 4 * index);
     return write_holding_registers(reg, values, 4);
 }
 
-bool RidenModbus::get_preset(uint8_t index, Preset &preset)
+bool RidenModbus::get_preset(const uint8_t index, Preset &preset)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
@@ -497,97 +497,97 @@ bool RidenModbus::get_preset(uint8_t index, Preset &preset)
     if (!read_holding_registers(reg, values, 4)) {
         return false;
     }
-    values_to_preset(values, preset);
+    values_to_preset(preset, values);
     return true;
 }
 
-bool RidenModbus::set_preset_voltage_out(uint8_t index, double voltage)
+bool RidenModbus::set_preset_voltage_out(const uint8_t index, const double voltage)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_V + 4 * index);
+    const Register reg = Register(+Register::M0_V + 4 * index);
     return write_voltage(reg, voltage);
 }
 
-bool RidenModbus::get_preset_voltage_out(uint8_t index, double &voltage)
+bool RidenModbus::get_preset_voltage_out(const uint8_t index, double &voltage)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_V + 4 * index);
+    const Register reg = Register(+Register::M0_V + 4 * index);
     return read_voltage(reg, voltage);
 }
 
-bool RidenModbus::set_preset_current_out(uint8_t index, double current)
+bool RidenModbus::set_preset_current_out(const uint8_t index, const double current)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_I + 4 * index);
+    const Register reg = Register(+Register::M0_I + 4 * index);
     return write_current(reg, current);
 }
 
-bool RidenModbus::get_preset_current_out(uint8_t index, double &current)
+bool RidenModbus::get_preset_current_out(const uint8_t index, double &current)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_I + 4 * index);
+    const Register reg = Register(+Register::M0_I + 4 * index);
     return read_current(reg, current);
 }
 
-bool RidenModbus::set_preset_over_voltage_protection(uint8_t index, double voltage)
+bool RidenModbus::set_preset_over_voltage_protection(const uint8_t index, const double voltage)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_OVP + 4 * index);
+    const Register reg = Register(+Register::M0_OVP + 4 * index);
     return write_voltage(reg, voltage);
 }
 
-bool RidenModbus::get_preset_over_voltage_protection(uint8_t index, double &voltage)
+bool RidenModbus::get_preset_over_voltage_protection(const uint8_t index, double &voltage)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_OVP + 4 * index);
+    const Register reg = Register(+Register::M0_OVP + 4 * index);
     return read_voltage(reg, voltage);
 }
 
-bool RidenModbus::set_preset_over_current_protection(uint8_t index, double current)
+bool RidenModbus::set_preset_over_current_protection(const uint8_t index, const double current)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_OCP + 4 * index);
+    const Register reg = Register(+Register::M0_OCP + 4 * index);
     return write_current(reg, current);
 }
 
-bool RidenModbus::get_preset_over_current_protection(uint8_t index, double &current)
+bool RidenModbus::get_preset_over_current_protection(const uint8_t index, double &current)
 {
     if (index >= NUMBER_OF_PRESETS) {
         return false;
     }
-    Register reg = Register(+Register::M0_OCP + 4 * index);
+    const Register reg = Register(+Register::M0_OCP + 4 * index);
     return read_current(reg, current);
 }
 
 // Shortcuts
 
-bool RidenModbus::set_over_voltage_protection(double voltage)
+bool RidenModbus::set_over_voltage_protection(const double voltage)
 {
     return set_preset_over_voltage_protection(0, voltage);
 }
 
-bool RidenModbus::set_over_current_protection(double current)
+bool RidenModbus::set_over_current_protection(const double current)
 {
     return set_preset_over_current_protection(0, current);
 }
 
 // Helpers
 
-bool RidenModbus::read_voltage(Register reg, double &voltage)
+bool RidenModbus::read_voltage(const Register reg, double &voltage)
 {
     uint16_t value;
     if (!read_holding_registers(reg, &value)) {
@@ -597,13 +597,13 @@ bool RidenModbus::read_voltage(Register reg, double &voltage)
     return true;
 }
 
-bool RidenModbus::write_voltage(Register reg, double voltage)
+bool RidenModbus::write_voltage(const Register reg, const double voltage)
 {
-    uint16_t value = voltage_to_value(voltage);
+    const uint16_t value = voltage_to_value(voltage);
     return write_holding_register(reg, value);
 }
 
-bool RidenModbus::read_current(Register reg, double &current)
+bool RidenModbus::read_current(const Register reg, double &current)
 {
     uint16_t value;
     if (!read_holding_registers(reg, &value)) {
@@ -613,13 +613,13 @@ bool RidenModbus::read_current(Register reg, double &current)
     return true;
 }
 
-bool RidenModbus::write_current(Register reg, double current)
+bool RidenModbus::write_current(const Register reg, const double current)
 {
-    uint16_t value = current_to_value(current);
+    const uint16_t value = current_to_value(current);
     return write_holding_register(reg, value);
 }
 
-bool RidenModbus::read_power(Register reg, double &power)
+bool RidenModbus::read_power(const Register reg, double &power)
 {
     uint16_t value;
     if (!read_holding_registers(reg, &value)) {
@@ -629,7 +629,7 @@ bool RidenModbus::read_power(Register reg, double &power)
     return true;
 }
 
-bool RidenModbus::read_boolean(Register reg, boolean &b)
+bool RidenModbus::read_boolean(const Register reg, boolean &b)
 {
     uint16_t value = 0;
     if (!read_holding_registers(reg, &value)) {
@@ -639,13 +639,13 @@ bool RidenModbus::read_boolean(Register reg, boolean &b)
     return true;
 }
 
-bool RidenModbus::write_boolean(Register reg, boolean b)
+bool RidenModbus::write_boolean(const Register reg, const boolean b)
 {
-    uint16_t value = b ? 1 : 0;
+    const uint16_t value = b ? 1 : 0;
     return write_holding_register(reg, value);
 }
 
-bool RidenModbus::read_holding_registers(uint16_t offset, uint16_t *value, uint16_t numregs)
+bool RidenModbus::read_holding_registers(const uint16_t offset, uint16_t *value, const uint16_t numregs)
 {
     if (!initialized) {
         return false;
@@ -668,7 +668,7 @@ bool RidenModbus::read_holding_registers(uint16_t offset, uint16_t *value, uint1
     return true;
 }
 
-bool RidenModbus::write_holding_register(uint16_t offset, uint16_t value)
+bool RidenModbus::write_holding_register(const uint16_t offset, const uint16_t value)
 {
     if (!initialized) {
         return false;
@@ -691,7 +691,7 @@ bool RidenModbus::write_holding_register(uint16_t offset, uint16_t value)
     return true;
 }
 
-bool RidenModbus::write_holding_registers(uint16_t offset, uint16_t *value, uint16_t numregs)
+bool RidenModbus::write_holding_registers(const uint16_t offset, uint16_t *value, uint16_t numregs)
 {
     if (!initialized) {
         return false;
@@ -714,72 +714,72 @@ bool RidenModbus::write_holding_registers(uint16_t offset, uint16_t *value, uint
     return true;
 }
 
-bool RidenModbus::read_holding_registers(Register reg, uint16_t *value, uint16_t numregs)
+bool RidenModbus::read_holding_registers(const Register reg, uint16_t *value, const uint16_t numregs)
 {
     uint16_t offset = +reg;
     return read_holding_registers(offset, value, numregs);
 }
 
-bool RidenModbus::write_holding_register(Register reg, uint16_t value)
+bool RidenModbus::write_holding_register(const Register reg, const uint16_t value)
 {
     uint16_t offset = +reg;
     return write_holding_register(offset, value);
 }
 
-bool RidenModbus::write_holding_registers(Register reg, uint16_t *value, uint16_t numregs)
+bool RidenModbus::write_holding_registers(const Register reg, uint16_t *value, uint16_t numregs)
 {
     uint16_t offset = +reg;
     return write_holding_registers(offset, value, numregs);
 }
 
-double RidenModbus::value_to_voltage(uint16_t value)
+double RidenModbus::value_to_voltage(const uint16_t value)
 {
     return double(value) / v_multi;
 }
 
-double RidenModbus::value_to_voltage_in(uint16_t value)
+double RidenModbus::value_to_voltage_in(const uint16_t value)
 {
     return double(value) / v_in_multi;
 }
 
-double RidenModbus::value_to_current(uint16_t value)
+double RidenModbus::value_to_current(const uint16_t value)
 {
     return double(value) / i_multi;
 }
 
-double RidenModbus::value_to_power(uint16_t value)
+double RidenModbus::value_to_power(const uint16_t value)
 {
     return double(value) / p_multi;
 }
 
-uint16_t RidenModbus::voltage_to_value(double voltage)
+uint16_t RidenModbus::voltage_to_value(const double voltage)
 {
     return uint16_t(voltage * v_multi);
 }
 
-uint16_t RidenModbus::current_to_value(double current)
+uint16_t RidenModbus::current_to_value(const double current)
 {
     return uint16_t(current * i_multi);
 }
 
-double RidenModbus::values_to_temperature(uint16_t *values)
+double RidenModbus::values_to_temperature(const uint16_t *values)
 {
     return (values[0] == 0 ? 1 : -1) * double(values[1]);
 }
 
-double RidenModbus::values_to_ah(uint16_t *values)
+double RidenModbus::values_to_ah(const uint16_t *values)
 {
     uint32_t value = (values[0] << 16) + values[1];
     return double(value) / 1000.0;
 }
 
-double RidenModbus::values_to_wh(uint16_t *values)
+double RidenModbus::values_to_wh(const uint16_t *values)
 {
     uint32_t value = (values[0] << 16) + values[1];
     return double(value) / 1000.0;
 }
 
-Protection RidenModbus::value_to_protection(uint16_t value)
+Protection RidenModbus::value_to_protection(const uint16_t value)
 {
     switch (value) {
     case 1:
@@ -791,7 +791,7 @@ Protection RidenModbus::value_to_protection(uint16_t value)
     }
 }
 
-OutputMode RidenModbus::value_to_output_mode(uint16_t value)
+OutputMode RidenModbus::value_to_output_mode(const uint16_t value)
 {
     switch (value) {
     case 0:
@@ -803,7 +803,7 @@ OutputMode RidenModbus::value_to_output_mode(uint16_t value)
     }
 }
 
-void RidenModbus::values_to_tm(tm &time, uint16_t *values)
+void RidenModbus::values_to_tm(tm &time, const uint16_t *values)
 {
     time.tm_year = values[0] - 1900;
     time.tm_mon = values[1] - 1;
@@ -813,7 +813,7 @@ void RidenModbus::values_to_tm(tm &time, uint16_t *values)
     time.tm_sec = values[5];
 }
 
-void RidenModbus::tm_to_values(uint16_t *values, tm &time)
+void RidenModbus::tm_to_values(uint16_t *values, const tm &time)
 {
     values[0] = uint16_t(time.tm_year + 1900);
     values[1] = uint16_t(time.tm_mon + 1);
@@ -823,7 +823,7 @@ void RidenModbus::tm_to_values(uint16_t *values, tm &time)
     values[5] = uint16_t(time.tm_sec);
 }
 
-void RidenModbus::values_to_preset(uint16_t *values, Preset &preset)
+void RidenModbus::values_to_preset(Preset &preset, const uint16_t *values)
 {
     preset.voltage = value_to_voltage(values[0]);
     preset.current = value_to_current(values[1]);
@@ -831,7 +831,7 @@ void RidenModbus::values_to_preset(uint16_t *values, Preset &preset)
     preset.over_current_protection = value_to_current(values[3]);
 }
 
-void RidenModbus::preset_to_values(Preset preset, uint16_t *values)
+void RidenModbus::preset_to_values(uint16_t *values, const Preset &preset)
 {
     values[0] = voltage_to_value(preset.voltage);
     values[1] = current_to_value(preset.current);

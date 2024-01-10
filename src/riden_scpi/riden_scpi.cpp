@@ -121,7 +121,7 @@ size_t SCPI_ResultChoice(scpi_t *context, scpi_choice_def_t *options, int32_t va
 
 size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     memcpy(&(ridenScpi->write_buffer[ridenScpi->write_buffer_length]), data, len);
     ridenScpi->write_buffer_length += len;
@@ -131,7 +131,7 @@ size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 
 scpi_result_t RidenScpi::SCPI_Flush(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     if (ridenScpi->clients[0]) {
         ridenScpi->clients[0].write(ridenScpi->write_buffer, ridenScpi->write_buffer_length);
@@ -180,7 +180,8 @@ scpi_result_t RidenScpi::SCPI_Reset(scpi_t *context)
 
 scpi_result_t RidenScpi::Rcl(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     uint32_t profile;
     if (!SCPI_ParamUnsignedInt(context, &profile, true)) {
         return SCPI_RES_ERR;
@@ -199,7 +200,8 @@ scpi_result_t RidenScpi::Rcl(scpi_t *context)
 
 scpi_result_t RidenScpi::DisplayBrightness(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     uint32_t brightness;
     if (!SCPI_ParamUnsignedInt(context, &brightness, true)) {
         return SCPI_RES_ERR;
@@ -218,7 +220,8 @@ scpi_result_t RidenScpi::DisplayBrightness(scpi_t *context)
 
 scpi_result_t RidenScpi::DisplayBrightnessQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     uint8_t brightness;
     if (ridenScpi->ridenModbus.get_brightness(brightness)) {
         SCPI_ResultUInt8(context, brightness);
@@ -231,15 +234,14 @@ scpi_result_t RidenScpi::DisplayBrightnessQ(scpi_t *context)
 
 scpi_result_t RidenScpi::DisplayLanguage(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
-    int32_t language = -1;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
+    int32_t language = -1;
     scpi_parameter_t param;
 
     if (!SCPI_Parameter(context, &param, true)) {
         return SCPI_RES_ERR;
     }
-
     if (!SCPI_ParamToChoice(context, &param, language_options, &language)) {
         if (!SCPI_ParamToInt(context, &param, &language)) {
             SCPI_ErrorPush(context, SCPI_ERROR_ILLEGAL_PARAMETER_VALUE);
@@ -260,7 +262,8 @@ scpi_result_t RidenScpi::DisplayLanguage(scpi_t *context)
 
 scpi_result_t RidenScpi::DisplayLanguageQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     uint16_t language;
     if (ridenScpi->ridenModbus.get_language(language)) {
         SCPI_ResultChoice(context, language_options, language);
@@ -273,7 +276,8 @@ scpi_result_t RidenScpi::DisplayLanguageQ(scpi_t *context)
 
 scpi_result_t RidenScpi::SystemDate(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     uint32_t year, month, day;
     if (!SCPI_ParamUnsignedInt(context, &year, true) || !SCPI_ParamUnsignedInt(context, &month, true) || !SCPI_ParamUnsignedInt(context, &day, true)) {
         return SCPI_RES_ERR;
@@ -288,10 +292,10 @@ scpi_result_t RidenScpi::SystemDate(scpi_t *context)
 
 scpi_result_t RidenScpi::SystemDateQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     tm clock;
     if (ridenScpi->ridenModbus.get_clock(clock)) {
-        int32_t result[] = {clock.tm_year + 1900, clock.tm_mon + 1, clock.tm_mday};
         SCPI_ResultUInt16(context, clock.tm_year + 1900);
         SCPI_ResultUInt16(context, clock.tm_mon + 1);
         SCPI_ResultUInt16(context, clock.tm_mday);
@@ -306,7 +310,8 @@ scpi_result_t RidenScpi::SystemDateQ(scpi_t *context)
 
 scpi_result_t RidenScpi::SystemTime(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     uint32_t hour, minute, second;
     if (!SCPI_ParamUnsignedInt(context, &hour, true) || !SCPI_ParamUnsignedInt(context, &minute, true) || !SCPI_ParamUnsignedInt(context, &second, true)) {
         return SCPI_RES_ERR;
@@ -321,10 +326,10 @@ scpi_result_t RidenScpi::SystemTime(scpi_t *context)
 
 scpi_result_t RidenScpi::SystemTimeQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     tm clock;
     if (ridenScpi->ridenModbus.get_clock(clock)) {
-        int32_t result[] = {clock.tm_hour, clock.tm_min, clock.tm_sec};
         SCPI_ResultUInt16(context, clock.tm_hour);
         SCPI_ResultUInt16(context, clock.tm_min);
         SCPI_ResultUInt16(context, clock.tm_sec);
@@ -337,7 +342,7 @@ scpi_result_t RidenScpi::SystemTimeQ(scpi_t *context)
 
 scpi_result_t RidenScpi::OutputState(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     bool on;
     if (!SCPI_ParamBool(context, &on, true)) {
@@ -353,7 +358,7 @@ scpi_result_t RidenScpi::OutputState(scpi_t *context)
 
 scpi_result_t RidenScpi::OutputStateQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     bool on;
     if (ridenScpi->ridenModbus.get_output_on(on)) {
@@ -367,7 +372,8 @@ scpi_result_t RidenScpi::OutputStateQ(scpi_t *context)
 
 scpi_result_t RidenScpi::OutputModeQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     OutputMode output_mode;
     if (ridenScpi->ridenModbus.get_output_mode(output_mode)) {
         switch (output_mode) {
@@ -387,7 +393,8 @@ scpi_result_t RidenScpi::OutputModeQ(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceVoltage(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     scpi_choice_def_t special;
     scpi_number_t value;
 
@@ -408,7 +415,8 @@ scpi_result_t RidenScpi::SourceVoltage(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceVoltageQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     double voltage;
 
     if (ridenScpi->ridenModbus.get_voltage_set(voltage)) {
@@ -422,7 +430,8 @@ scpi_result_t RidenScpi::SourceVoltageQ(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceVoltageProtectionTrippedQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     Protection protection;
     if (ridenScpi->ridenModbus.get_protection(protection)) {
         SCPI_ResultBool(context, protection == Protection::OVP);
@@ -435,7 +444,8 @@ scpi_result_t RidenScpi::SourceVoltageProtectionTrippedQ(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceCurrent(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     scpi_choice_def_t special;
     scpi_number_t value;
 
@@ -456,7 +466,8 @@ scpi_result_t RidenScpi::SourceCurrent(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceCurrentQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     double current;
 
     if (ridenScpi->ridenModbus.get_current_set(current)) {
@@ -470,7 +481,8 @@ scpi_result_t RidenScpi::SourceCurrentQ(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceCurrentProtectionTrippedQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     Protection protection;
     if (ridenScpi->ridenModbus.get_protection(protection)) {
         SCPI_ResultBool(context, protection == Protection::OCP);
@@ -483,7 +495,8 @@ scpi_result_t RidenScpi::SourceCurrentProtectionTrippedQ(scpi_t *context)
 
 scpi_result_t RidenScpi::MeasureVoltageQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     double voltage;
 
     if (ridenScpi->ridenModbus.get_voltage_out(voltage)) {
@@ -497,7 +510,8 @@ scpi_result_t RidenScpi::MeasureVoltageQ(scpi_t *context)
 
 scpi_result_t RidenScpi::MeasureCurrentQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     double current;
 
     if (ridenScpi->ridenModbus.get_current_out(current)) {
@@ -511,7 +525,8 @@ scpi_result_t RidenScpi::MeasureCurrentQ(scpi_t *context)
 
 scpi_result_t RidenScpi::MeasurePowerQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     double power;
 
     if (ridenScpi->ridenModbus.get_power_out(power)) {
@@ -525,7 +540,8 @@ scpi_result_t RidenScpi::MeasurePowerQ(scpi_t *context)
 
 scpi_result_t RidenScpi::MeasureTemperatureQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     int32_t choice;
     if (!SCPI_ParamChoice(context, temperature_options, &choice, TRUE)) {
         SCPI_ErrorPush(context, SCPI_ERROR_ILLEGAL_PARAMETER_VALUE);
@@ -549,7 +565,7 @@ scpi_result_t RidenScpi::MeasureTemperatureQ(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceVoltageLimit(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     scpi_choice_def_t special;
     scpi_number_t value;
@@ -571,7 +587,7 @@ scpi_result_t RidenScpi::SourceVoltageLimit(scpi_t *context)
 
 scpi_result_t RidenScpi::SourceCurrentLimit(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     scpi_choice_def_t special;
     scpi_number_t value;
@@ -593,7 +609,8 @@ scpi_result_t RidenScpi::SourceCurrentLimit(scpi_t *context)
 
 scpi_result_t RidenScpi::SystemBeeperState(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     bool on;
     if (!SCPI_ParamBool(context, &on, TRUE)) {
         return SCPI_RES_ERR;
@@ -608,7 +625,8 @@ scpi_result_t RidenScpi::SystemBeeperState(scpi_t *context)
 
 scpi_result_t RidenScpi::SystemBeeperStateQ(scpi_t *context)
 {
-    RidenScpi *ridenScpi = (RidenScpi *)context->user_context;
+    RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+
     bool on;
     if (ridenScpi->ridenModbus.is_buzzer_enabled(on)) {
         SCPI_ResultBool(context, on);
@@ -634,7 +652,7 @@ bool RidenScpi::begin()
     ridenModbus.get_firmware_version(firmware_version);
     memcpy(idn2, type.c_str(), type.length());
     sprintf(idn3, "%08u", serial_number);
-    sprintf(idn4, "%u.%u", firmware_version / 100, firmware_version % 100);
+    sprintf(idn4, "%u.%u", firmware_version / 100u, firmware_version % 100u);
 
     const char *idn1 = "Riden"; // <company name>
     SCPI_Init(&scpi_context,

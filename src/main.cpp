@@ -48,7 +48,7 @@ static void wifi_manager_config_mode_callback(WiFiManager *myWiFiManager);
 
 /**
  * Connect to WiFi.
- * 
+ *
  * Start WiFiManager access point if no WiFi credentials are found
  * or the WiFi module fails to connect.
  *
@@ -80,7 +80,7 @@ void setup()
     if (riden_modbus.begin()) {
         uint32_t serial_number;
         riden_modbus.get_serial_number(serial_number);
-        sprintf(hostname, "%s-%08d", riden_modbus.get_type().c_str(), serial_number);
+        sprintf(hostname, "%s-%08u", riden_modbus.get_type().c_str(), serial_number);
 
         if (!connect_wifi(hostname)) {
             ESP.reset();

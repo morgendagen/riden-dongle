@@ -17,7 +17,7 @@ namespace RidenDongle
 class RidenModbusBridge
 {
   public:
-    RidenModbusBridge(RidenModbus &riden_modbus) : riden_modbus(riden_modbus){};
+    explicit RidenModbusBridge(RidenModbus &riden_modbus) : riden_modbus(riden_modbus){};
     bool begin();
     bool loop();
 

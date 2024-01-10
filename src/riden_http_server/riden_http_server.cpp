@@ -12,7 +12,7 @@
 
 using namespace RidenDongle;
 
-static String voltage2string(double voltage)
+static String voltage_to_string(double voltage)
 {
     if (voltage < 1) {
         return String(voltage * 1000, 0) + " mV";
@@ -21,7 +21,7 @@ static String voltage2string(double voltage)
     }
 }
 
-static String current2string(double current)
+static String current_to_string(double current)
 {
     if (current < 1) {
         return String(current * 1000, 0) + " mA";
@@ -30,7 +30,7 @@ static String current2string(double current)
     }
 }
 
-static String power2string(double power)
+static String power_to_string(double power)
 {
     if (power < 1) {
         return String(power * 1000, 0) + " mW";
@@ -39,7 +39,7 @@ static String power2string(double power)
     }
 }
 
-static String protection2string(Protection protection)
+static String protection_to_string(Protection protection)
 {
     switch (protection) {
     case Protection::OVP:
@@ -51,7 +51,7 @@ static String protection2string(Protection protection)
     }
 }
 
-static String outputmode2string(OutputMode output_mode)
+static String outputmode_to_string(OutputMode output_mode)
 {
     switch (output_mode) {
     case OutputMode::CONSTANT_VOLTAGE:
@@ -65,17 +65,16 @@ static String outputmode2string(OutputMode output_mode)
 
 bool RidenHttpServer::begin()
 {
-    MDNS.addService("lxi", "tcp", HTTP_RAW_PORT); // allows discovery by lxi-tools
-    MDNS.addService("http", "tcp", HTTP_RAW_PORT);
+    MDNS.addService("lxi", "tcp", port()); // allows discovery by lxi-tools
+    MDNS.addService("http", "tcp", port());
 
-    server.on("/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::get_root, this));
-    server.on("/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::post_root, this));
-    server.on("/psu/", HTTP_GET, std::bind(&RidenHttpServer::handle_get_psu, this));
-    server.on("/config/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::get_config, this));
-    server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::post_config, this));
-    server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::reboot_dongle, this));
+    server.on("/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_root_get, this));
+    server.on("/psu/", HTTP_GET, std::bind(&RidenHttpServer::handle_psu_get, this));
+    server.on("/config/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_config_get, this));
+    server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
+    server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
     server.onNotFound(std::bind(&RidenHttpServer::handle_not_found, this));
-    server.begin();
+    server.begin(port());
 
     return true;
 }
@@ -85,12 +84,16 @@ void RidenHttpServer::loop(void)
     server.handleClient();
 }
 
-void RidenHttpServer::get_root()
+uint16_t RidenHttpServer::port()
+{
+    return HTTP_RAW_PORT;
+}
+
+void RidenHttpServer::handle_root_get()
 {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", HTML_HEADER);
     if (modbus.is_connected()) {
-        send_connected_clients();
         send_power_supply_info();
         send_network_info();
         send_services();
@@ -101,7 +104,7 @@ void RidenHttpServer::get_root()
     server.sendContent("");
 }
 
-void RidenHttpServer::handle_get_psu()
+void RidenHttpServer::handle_psu_get()
 {
     AllValues all_values;
 
@@ -113,34 +116,30 @@ void RidenHttpServer::handle_get_psu()
         server.sendContent("            <table class='info'>");
         server.sendContent("                <tbody>");
         send_info_row("Output", all_values.output_on ? "On" : "Off");
-        send_info_row("Set", voltage2string(all_values.voltage_set) + " / " + current2string(all_values.current_set));
+        send_info_row("Set", voltage_to_string(all_values.voltage_set) + " / " + current_to_string(all_values.current_set));
         send_info_row("Out",
-                      voltage2string(all_values.voltage_out) + " / " + current2string(all_values.current_out) + " / " + power2string(all_values.power_out));
-        send_info_row("Protection", protection2string(all_values.protection));
-        send_info_row("Output Mode", outputmode2string(all_values.output_mode));
+                      voltage_to_string(all_values.voltage_out) + " / " + current_to_string(all_values.current_out) + " / " + power_to_string(all_values.power_out));
+        send_info_row("Protection", protection_to_string(all_values.protection));
+        send_info_row("Output Mode", outputmode_to_string(all_values.output_mode));
         send_info_row("Current Range", String(all_values.current_range, 10));
         send_info_row("Battery Mode", all_values.is_battery_mode ? "Yes" : "No");
-        send_info_row("Voltage Battery", voltage2string(all_values.voltage_battery));
+        send_info_row("Voltage Battery", voltage_to_string(all_values.voltage_battery));
         send_info_row("Ah", String(all_values.ah, 3) + " Ah");
         send_info_row("Wh", String(all_values.wh, 3) + " Wh");
         server.sendContent("                </tbody>");
         server.sendContent("            </table>");
         server.sendContent("        </div>");
-        server.sendContent("</tbody>");
-        server.sendContent("</table>");
 
         server.sendContent("        <div class='box'>");
         server.sendContent("            <h2>Environment</h2>");
         server.sendContent("            <table class='info'>");
         server.sendContent("                <tbody>");
-        send_info_row("Voltage In", voltage2string(all_values.voltage_in));
+        send_info_row("Voltage In", voltage_to_string(all_values.voltage_in));
         send_info_row("System Temperature", String(all_values.system_temperature_celsius, 0) + "&deg;C" + " / " + String(all_values.system_temperature_fahrenheit, 0) + "&deg;F");
         send_info_row("Probe Temperature", String(all_values.probe_temperature_celsius, 0) + "&deg;C" + " / " + String(all_values.probe_temperature_fahrenheit, 0) + "&deg;F");
         server.sendContent("                </tbody>");
         server.sendContent("            </table>");
         server.sendContent("        </div>");
-        server.sendContent("</tbody>");
-        server.sendContent("</table>");
 
         server.sendContent("        <div class='box'>");
         server.sendContent("            <h2>Settings</h2>");
@@ -166,8 +165,6 @@ void RidenHttpServer::handle_get_psu()
         server.sendContent("                </tbody>");
         server.sendContent("            </table>");
         server.sendContent("        </div>");
-        server.sendContent("</tbody>");
-        server.sendContent("</table>");
 
         server.sendContent("        <div class='box'>");
         server.sendContent("            <h2>Calibration</h2>");
@@ -184,8 +181,6 @@ void RidenHttpServer::handle_get_psu()
         server.sendContent("                </tbody>");
         server.sendContent("            </table>");
         server.sendContent("        </div>");
-        server.sendContent("</tbody>");
-        server.sendContent("</table>");
 
         server.sendContent("        <div class='box'>");
         server.sendContent("            <h2>Presets</h2>");
@@ -193,16 +188,14 @@ void RidenHttpServer::handle_get_psu()
         server.sendContent("                <tbody>");
         for (int preset = 0; preset < NUMBER_OF_PRESETS; preset++) {
             server.sendContent("<tr><th colspan='2' style='text-align:left'>Preset " + String(preset + 1, 10) + " (M" + String(preset + 1, 10) + ")" + "</th></tr>");
-            send_info_row("Preset Voltage", voltage2string(all_values.presets[preset].voltage));
-            send_info_row("Preset Current", current2string(all_values.presets[preset].current));
-            send_info_row("Preset OVP", voltage2string(all_values.presets[preset].over_voltage_protection));
-            send_info_row("Preset OCP", current2string(all_values.presets[preset].over_current_protection));
+            send_info_row("Preset Voltage", voltage_to_string(all_values.presets[preset].voltage));
+            send_info_row("Preset Current", current_to_string(all_values.presets[preset].current));
+            send_info_row("Preset OVP", voltage_to_string(all_values.presets[preset].over_voltage_protection));
+            send_info_row("Preset OCP", current_to_string(all_values.presets[preset].over_current_protection));
         }
         server.sendContent("                </tbody>");
         server.sendContent("            </table>");
         server.sendContent("        </div>");
-        server.sendContent("</tbody>");
-        server.sendContent("</table>");
     } else {
         server.sendContent(HTML_NO_CONNECTION_BODY);
     }
@@ -210,7 +203,7 @@ void RidenHttpServer::handle_get_psu()
     server.sendContent("");
 }
 
-void RidenHttpServer::get_config()
+void RidenHttpServer::handle_config_get()
 {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", HTML_HEADER);
@@ -230,7 +223,7 @@ void RidenHttpServer::get_config()
     server.sendContent("");
 }
 
-void RidenHttpServer::post_config()
+void RidenHttpServer::handle_config_post()
 {
     String tz = server.arg("timezone");
     LOG_F("Selected timezone: %s\r\n", tz.c_str());
@@ -240,7 +233,7 @@ void RidenHttpServer::post_config()
     send_redirect_self();
 }
 
-void RidenHttpServer::reboot_dongle()
+void RidenHttpServer::handle_reboot_dongle_get()
 {
     String config_arg = server.arg("config_portal");
 
@@ -287,35 +280,6 @@ void RidenHttpServer::send_redirect_self()
     server.sendContent("");
 }
 
-void RidenHttpServer::send_connected_clients()
-{
-    return;
-    server.sendContent("<h1>Connected Clients</h1>");
-    server.sendContent("<table>");
-    server.sendContent("<thead><tr><th>IP</th><th>Interface</th><th>Action</th></tr></thead>");
-
-    server.sendContent("<tbody>");
-    server.sendContent("<form method='post'>");
-    for (auto const &client : scpi.get_connected_clients()) {
-        server.sendContent("<tr>");
-        // IP
-        server.sendContent("<td>");
-        server.sendContent(client);
-        server.sendContent("</td>");
-        // Type
-        server.sendContent("<td>SCPI</td>");
-        // Disconnect action
-        server.sendContent("<td><input type='submit' name='disconnect_ip' value='");
-        server.sendContent(client);
-        server.sendContent("'></td>");
-        server.sendContent("</tr>");
-    }
-    server.sendContent("</form>");
-    server.sendContent("</tbody>");
-
-    server.sendContent("</table>");
-}
-
 void RidenHttpServer::send_power_supply_info()
 {
     uint16_t firmware_version;
@@ -330,15 +294,13 @@ void RidenHttpServer::send_power_supply_info()
     server.sendContent("            <table class='info'>");
     server.sendContent("                <tbody>");
     send_info_row("Model", type);
-    sprintf(tmp_string, "%u.%u", firmware_version / 100, firmware_version % 100);
+    sprintf(tmp_string, "%u.%u", firmware_version / 100u, firmware_version % 100u);
     send_info_row("Firmware", tmp_string);
-    sprintf(tmp_string, "%08d", serial_number);
+    sprintf(tmp_string, "%08u", serial_number);
     send_info_row("Serial Number", String(tmp_string));
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
-    server.sendContent("</tbody>");
-    server.sendContent("</table>");
 }
 
 void RidenHttpServer::send_network_info()
@@ -363,8 +325,6 @@ void RidenHttpServer::send_network_info()
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
-    server.sendContent("</tbody>");
-    server.sendContent("</table>");
 }
 
 void RidenHttpServer::send_services()
@@ -373,24 +333,12 @@ void RidenHttpServer::send_services()
     server.sendContent("            <h2>Network Services</h2>");
     server.sendContent("            <table class='info'>");
     server.sendContent("                <tbody>");
-    send_info_row("Web Server Port", String(HTTP_RAW_PORT, 10));
+    send_info_row("Web Server Port", String(this->port(), 10));
     send_info_row("Modbus TCP Port", String(bridge.port(), 10));
     send_info_row("SCPI Port", String(scpi.port(), 10));
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
-    server.sendContent("</tbody>");
-    server.sendContent("</table>");
-}
-
-void RidenHttpServer::post_root()
-{
-    String ip = server.arg("disconnect_ip");
-    LOG_F("Disconnect ");
-    LOG_LN(ip);
-    scpi.disconnect_client(ip);
-
-    send_redirect_self();
 }
 
 void RidenHttpServer::send_info_row(String key, String value)

@@ -23,7 +23,7 @@ namespace RidenDongle
 class RidenScpi
 {
   public:
-    RidenScpi(RidenModbus &ridenModbus, uint16_t port = DEFAULT_SCPI_PORT) : ridenModbus(ridenModbus), tcpServer(port) {}
+    explicit RidenScpi(RidenModbus &ridenModbus, uint16_t port = DEFAULT_SCPI_PORT) : ridenModbus(ridenModbus), tcpServer(port) {}
 
     bool begin();
     bool loop();
@@ -41,10 +41,10 @@ class RidenScpi
     char idn4[10] = {0}; // <firmware revision>
 
     scpi_t scpi_context;
-    char scpi_input_buffer[SCPI_INPUT_BUFFER_LENGTH];
+    char scpi_input_buffer[SCPI_INPUT_BUFFER_LENGTH] = {};
     scpi_error_t scpi_error_queue_data[SCPI_ERROR_QUEUE_SIZE];
 
-    char write_buffer[WRITE_BUFFER_LENGTH];
+    char write_buffer[WRITE_BUFFER_LENGTH] = {};
     size_t write_buffer_length = 0;
 
     static const scpi_command_t scpi_commands[];

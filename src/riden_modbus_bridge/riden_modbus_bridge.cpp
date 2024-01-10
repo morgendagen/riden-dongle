@@ -95,7 +95,7 @@ Modbus::ResultCode RidenModbusBridge::modbus_rtu_raw_callback(uint8_t *data, uin
     // Stop intercepting raw data
     riden_modbus.modbus.onRaw(nullptr);
 
-    Modbus::frame_arg_t *source = (Modbus::frame_arg_t *)custom;
+    const Modbus::frame_arg_t *source = static_cast<Modbus::frame_arg_t *>(custom);
     if (!source->to_server) {
         modbus_tcp.setTransactionId(transaction_id);
         modbus_tcp.rawResponce(ip, data, len, slave_id);

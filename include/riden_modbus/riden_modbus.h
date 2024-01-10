@@ -104,10 +104,10 @@ class RidenModbus
     bool get_system_temperature_fahrenheit(double &temperature);
 
     bool get_voltage_set(double &voltage);
-    bool set_voltage_set(double voltage);
+    bool set_voltage_set(const double voltage);
 
     bool get_current_set(double &current);
-    bool set_current_set(double current);
+    bool set_current_set(const double current);
 
     bool get_voltage_out(double &voltage);
     bool get_current_out(double &current);
@@ -122,7 +122,7 @@ class RidenModbus
     bool get_output_mode(OutputMode &output_mode);
 
     bool get_output_on(bool &result);
-    bool set_output_on(bool on);
+    bool set_output_on(const bool on);
 
     /**
      * @brief Set the preset
@@ -131,7 +131,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool set_preset(uint8_t index);
+    bool set_preset(const uint8_t index);
 
     bool get_current_range(uint16_t &current_range);
 
@@ -146,32 +146,30 @@ class RidenModbus
     bool get_wh(double &wh);
 
     bool get_clock(tm &time);
-    bool set_clock(tm time);
-    bool set_date(uint16_t year, uint16_t month, uint16_t day);
-    bool set_time(uint8_t hour, uint8_t minute, uint8_t second);
-
-    // TODO[pdr] Calibration registers
+    bool set_clock(const tm time);
+    bool set_date(const uint16_t year, const uint16_t month, const uint16_t day);
+    bool set_time(const uint8_t hour, const uint8_t minute, const uint8_t second);
 
     // Options
 
     bool is_take_ok(bool &take_ok);
-    bool set_take_ok(bool take_ok);
+    bool set_take_ok(const bool take_ok);
     bool is_take_out(bool &take_out);
-    bool set_take_out(bool take_out);
+    bool set_take_out(const bool take_out);
     bool is_power_on_boot(bool &power_on_boot);
-    bool set_power_on_boot(bool power_on_boot);
+    bool set_power_on_boot(const bool power_on_boot);
     bool is_buzzer_enabled(bool &buzzer);
-    bool set_buzzer_enabled(bool buzzer);
+    bool set_buzzer_enabled(const bool buzzer);
     bool is_logo(bool &logo);
-    bool set_logo(bool logo);
+    bool set_logo(const bool logo);
     bool get_language(uint16_t &language);
-    bool set_language(uint16_t language);
+    bool set_language(const uint16_t language);
     bool get_brightness(uint8_t &brightness);
-    bool set_brightness(uint8_t brightness);
+    bool set_brightness(const uint8_t brightness);
 
     // Calibration
     bool get_calibration(Calibration &calibration);
-    bool set_calibration(Calibration calibration);
+    bool set_calibration(const Calibration calibration);
 
     // Presets
     /**
@@ -181,7 +179,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool set_preset(uint8_t index, Preset preset);
+    bool set_preset(const uint8_t index, const Preset &preset);
 
     /**
      * @brief Retrieve preset at `index`.
@@ -190,7 +188,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool get_preset(uint8_t index, Preset &preset);
+    bool get_preset(const uint8_t index, Preset &preset);
 
     /**
      * @brief Store preset voltage at `index`.
@@ -199,7 +197,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool set_preset_voltage_out(uint8_t index, double voltage);
+    bool set_preset_voltage_out(const uint8_t index, const double voltage);
 
     /**
      * @brief Retrive preset voltage at `index`.
@@ -208,7 +206,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool get_preset_voltage_out(uint8_t index, double &voltage);
+    bool get_preset_voltage_out(const uint8_t index, double &voltage);
 
     /**
      * @brief Store preset current at `index`.
@@ -217,7 +215,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool set_preset_current_out(uint8_t index, double current);
+    bool set_preset_current_out(const uint8_t index, const double current);
 
     /**
      * @brief Retrieve preset current at `index`.
@@ -226,7 +224,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool get_preset_current_out(uint8_t index, double &current);
+    bool get_preset_current_out(const uint8_t index, double &current);
 
     /**
      * @brief Store preset OVP at `index`.
@@ -235,7 +233,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool set_preset_over_voltage_protection(uint8_t index, double voltage);
+    bool set_preset_over_voltage_protection(const uint8_t index, const double voltage);
 
     /**
      * @brief Retrieve preset OVP at `index`.
@@ -244,7 +242,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool get_preset_over_voltage_protection(uint8_t index, double &voltage);
+    bool get_preset_over_voltage_protection(const uint8_t index, double &voltage);
 
     /**
      * @brief Store preset OCP at `index`.
@@ -253,7 +251,7 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool set_preset_over_current_protection(uint8_t index, double current);
+    bool set_preset_over_current_protection(const uint8_t index, const double current);
 
     /**
      * @brief Retrieve preset OCP at `index`.
@@ -262,22 +260,22 @@ class RidenModbus
      * @return true On success.
      * @return false On failure.
      */
-    bool get_preset_over_current_protection(uint8_t index, double &current);
+    bool get_preset_over_current_protection(const uint8_t index, double &current);
 
     // Bootloader
     bool reboot_to_bootloader();
 
     // Shortcuts
-    bool set_over_voltage_protection(double voltage); // = M0_OVP
-    bool set_over_current_protection(double current); // = M0_OCP
+    bool set_over_voltage_protection(const double voltage); // = M0_OVP
+    bool set_over_current_protection(const double current); // = M0_OCP
 
     // Raw Access
-    bool read_holding_registers(uint16_t offset, uint16_t *value, uint16_t numregs = 1);
-    bool write_holding_register(uint16_t offset, uint16_t value);
-    bool write_holding_registers(uint16_t offset, uint16_t *value, uint16_t numregs = 1);
-    bool read_holding_registers(Register reg, uint16_t *value, uint16_t numregs = 1);
-    bool write_holding_register(Register reg, uint16_t value);
-    bool write_holding_registers(Register reg, uint16_t *value, uint16_t numregs = 1);
+    bool read_holding_registers(const uint16_t offset, uint16_t *value, const uint16_t numregs = 1);
+    bool write_holding_register(const uint16_t offset, const uint16_t value);
+    bool write_holding_registers(const uint16_t offset, uint16_t *value, uint16_t numregs = 1);
+    bool read_holding_registers(const Register reg, uint16_t *value, const uint16_t numregs = 1);
+    bool write_holding_register(const Register reg, const uint16_t value);
+    bool write_holding_registers(const Register reg, uint16_t *value, uint16_t numregs = 1);
 
   private:
     ModbusRTU modbus;
@@ -289,29 +287,29 @@ class RidenModbus
     double p_multi = 100.0;
     double v_in_multi = 100.0;
 
-    bool read_voltage(Register reg, double &voltage);
-    bool write_voltage(Register reg, double voltage);
-    bool read_current(Register reg, double &current);
-    bool write_current(Register reg, double current);
-    bool read_power(Register reg, double &power);
-    bool read_boolean(Register reg, boolean &b);
-    bool write_boolean(Register reg, boolean b);
+    bool read_voltage(const Register reg, double &voltage);
+    bool write_voltage(const Register reg, double voltage);
+    bool read_current(const Register reg, double &current);
+    bool write_current(const Register reg, double current);
+    bool read_power(const Register reg, double &power);
+    bool read_boolean(const Register reg, boolean &b);
+    bool write_boolean(const Register reg, boolean b);
 
-    double value_to_voltage(uint16_t value);
-    double value_to_voltage_in(uint16_t value);
-    double value_to_current(uint16_t value);
-    double value_to_power(uint16_t value);
-    uint16_t voltage_to_value(double voltage);
-    uint16_t current_to_value(double current);
-    double values_to_temperature(uint16_t *values);
-    double values_to_ah(uint16_t *values);
-    double values_to_wh(uint16_t *values);
-    Protection value_to_protection(uint16_t value);
-    OutputMode value_to_output_mode(uint16_t value);
-    void values_to_tm(tm &time, uint16_t *values);
-    void tm_to_values(uint16_t *values, tm &time);
-    void values_to_preset(uint16_t *values, Preset &preset);
-    void preset_to_values(Preset preset, uint16_t *values);
+    double value_to_voltage(const uint16_t value);
+    double value_to_voltage_in(const uint16_t value);
+    double value_to_current(const uint16_t value);
+    double value_to_power(const uint16_t value);
+    uint16_t voltage_to_value(const double voltage);
+    uint16_t current_to_value(const double current);
+    double values_to_temperature(const uint16_t *values);
+    double values_to_ah(const uint16_t *values);
+    double values_to_wh(const uint16_t *values);
+    Protection value_to_protection(const uint16_t value);
+    OutputMode value_to_output_mode(const uint16_t value);
+    void values_to_tm(tm &time, const uint16_t *values);
+    void tm_to_values(uint16_t *values, const tm &time);
+    void values_to_preset(Preset &preset, const uint16_t *values);
+    void preset_to_values(uint16_t *values, const Preset &preset);
 };
 
 } // namespace RidenDongle
