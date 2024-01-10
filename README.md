@@ -1,4 +1,4 @@
-# Riden Multi-Purpose WiFi Dongle Firmware
+# Riden Dongle - A Multi-Protocol Firmware for the Riden WiFi Module
 
 This is an alternative firmware for the Riden WiFi module that
 provides Modbus TCP and SCPI support as well as a web interface.
@@ -145,6 +145,20 @@ the module.
 Reboot in to config portal using the web interface.
 Connect to the module's access point (see above),
 hit Update and select your new `firmware.bin`.
+
+
+## Development
+
+For easy development, hook up an ESP8266 NodeMCU
+development board and connect RXD to D6, TXD to D5, and
+GND to GND.
+
+Finally use the `env:nodemcuv2` PlatformIO environment during
+development.
+
+This allows simultaneously having the NodeMCU connected
+to the power supply and using the USB serial port for
+flashing as well as monitor log output.
 
 
 ## Limitations
