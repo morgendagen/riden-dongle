@@ -106,8 +106,10 @@ static String language_to_string(uint16_t language_id)
 
 bool RidenHttpServer::begin()
 {
-    MDNS.addService("lxi", "tcp", port()); // allows discovery by lxi-tools
-    MDNS.addService("http", "tcp", port());
+    if (MDNS.isRunning() && modbus.is_connected()) {
+        MDNS.addService("lxi", "tcp", port()); // allows discovery by lxi-tools
+        MDNS.addService("http", "tcp", port());
+    }
 
     server.on("/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_root_get, this));
     server.on("/psu/", HTTP_GET, std::bind(&RidenHttpServer::handle_psu_get, this));
@@ -153,7 +155,7 @@ void RidenHttpServer::handle_psu_get()
 
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", HTML_HEADER);
-    if (modbus.get_all_values(all_values)) {
+    if (modbus.is_connected() && modbus.get_all_values(all_values)) {
         server.sendContent("        <div class='box'>");
         server.sendContent("            <a style='float:right' href='.'>Refresh</a><h2>Power Supply Details</h2>");
         server.sendContent("            <table class='info'>");
