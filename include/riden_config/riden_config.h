@@ -26,10 +26,13 @@ class RidenConfig
     const Timezone &get_timezone(int index);
     void set_config_portal_on_boot();
     bool get_and_reset_config_portal_on_boot();
+    uint32_t get_uart_baudrate();
+    void set_uart_baudrate(uint32_t baudrate);
 
   private:
     String tz_name = "";
     bool config_portal_on_boot = false;
+    uint32_t uart_baudrate = DEFAULT_UART_BAUDRATE;
 };
 
 extern RidenConfig riden_config;

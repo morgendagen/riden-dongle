@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+#include <riden_config/riden_config.h>
 #include <riden_logging/riden_logging.h>
 #include <riden_modbus/riden_modbus.h>
 
@@ -29,9 +30,9 @@ bool RidenModbus::begin()
     LOG_LN("RuidengModbus initializing");
 
 #ifdef MODBUS_USE_SOFWARE_SERIAL
-    SerialRuideng.begin(SERIAL_RUIDENG_BAUD, SWSERIAL_8N1);
+    SerialRuideng.begin(riden_config.get_uart_baudrate(), SWSERIAL_8N1);
 #else
-    SerialRuideng.begin(SERIAL_RUIDENG_BAUD, SERIAL_8N1);
+    SerialRuideng.begin(riden_config.get_uart_baudrate(), SERIAL_8N1);
 #endif
     if (!modbus.begin(&SerialRuideng)) {
         return false;

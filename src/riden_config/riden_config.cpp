@@ -9,7 +9,7 @@
 #include <EEPROM.h>
 
 #define MAGIC "RD"
-#define LATEST_CONFIG_VERSION 1
+#define CURRENT_CONFIG_VERSION 2
 
 using namespace RidenDongle;
 
@@ -26,22 +26,49 @@ struct RidenConfigStructV1 {
     bool config_portal_on_boot;
 };
 
+// V2 Configuration Struct
+struct RidenConfigStructV2 {
+    RidenConfigHeader header;
+    char tz_name[100];
+    bool config_portal_on_boot;
+    uint32_t uart_baudrate;
+};
+
 bool RidenConfig::begin()
 {
     EEPROM.begin(512);
-    RidenConfigStructV1 config{0};
-    EEPROM.get(0, config);
-    if (memcmp(config.header.magic, "RD", sizeof(MAGIC)) == 0 && config.header.config_version == 1) {
-        tz_name = config.tz_name;
-        config_portal_on_boot = config.config_portal_on_boot;
-    } else {
+    RidenConfigHeader header{0};
+    EEPROM.get(0, header);
+    bool success = false;
+    if (memcmp(header.magic, "RD", sizeof(MAGIC)) == 0) {
+        switch (header.config_version) {
+        case 1: {
+            RidenConfigStructV1 config;
+            EEPROM.get(0, config);
+            tz_name = config.tz_name;
+            config_portal_on_boot = config.config_portal_on_boot;
+            success = true;
+            break;
+        }
+        case 2: {
+            RidenConfigStructV2 config;
+            EEPROM.get(0, config);
+            tz_name = config.tz_name;
+            config_portal_on_boot = config.config_portal_on_boot;
+            uart_baudrate = config.uart_baudrate;
+            success = true;
+            break;
+        }
+        default:
+            success = false;
+        }
+    }
+    if (!success) {
         LOG_LN("RidenConfig: Incorrect magic");
         // Creating a default config
-        tz_name = "";
-        config_portal_on_boot = false;
-        commit();
+        success = commit();
     }
-    return true;
+    return success;
 }
 
 void RidenConfig::set_timezone_name(String tz_name)
@@ -90,13 +117,24 @@ bool RidenConfig::get_and_reset_config_portal_on_boot()
     return false;
 }
 
+uint32_t RidenConfig::get_uart_baudrate()
+{
+    return uart_baudrate;
+}
+
+void RidenConfig::set_uart_baudrate(uint32_t baudrate)
+{
+    this->uart_baudrate = baudrate;
+}
+
 bool RidenConfig::commit()
 {
-    RidenConfigStructV1 config;
+    RidenConfigStructV2 config;
     memcpy(config.header.magic, MAGIC, sizeof(MAGIC));
-    config.header.config_version = LATEST_CONFIG_VERSION;
+    config.header.config_version = CURRENT_CONFIG_VERSION;
     strcpy(config.tz_name, tz_name.c_str());
     config.config_portal_on_boot = config_portal_on_boot;
+    config.uart_baudrate = uart_baudrate;
     EEPROM.put(0, config);
     bool success = EEPROM.commit();
     if (success) {
