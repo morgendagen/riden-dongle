@@ -120,8 +120,10 @@ static const char *HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_2 =
     "    <p>Connect to it and the config portal will show up.</p>";
 
 static const char *HTML_NO_CONNECTION_BODY =
-    "<p><b>Unable to communicate with power supply.</b></p>"
-    "<p>Make sure you have configured the power supply for TTL"
-    " at 9600 bps.</p>"
-    "<p>You must power-cycle the power supply if you modified"
-    " its configuration.</p>";
+    "<div class='box'>"
+    "    <h2>Unable to communicate with power supply</h2>"
+    "    <p>Make sure you have configured the power supply for TTL"
+    " at the <a href='/config/'>configured</a> baudrate.</p>"
+    "    <p>You must power-cycle the power supply if you modified"
+    " its configuration.</p>"
+    "</div>";

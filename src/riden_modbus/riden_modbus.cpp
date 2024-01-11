@@ -35,22 +35,21 @@ bool RidenModbus::begin()
     SerialRuideng.begin(riden_config.get_uart_baudrate(), SERIAL_8N1);
 #endif
     if (!modbus.begin(&SerialRuideng)) {
+        LOG_LN("Failed initializing ModbusRTU");
         return false;
     }
     modbus.client();
 
-    // We cannot use get_id() yet, since this is method
-    // is executed from main's setup().
+    // we need to pretend we're connected
+    // or else get_id() will fail.
+    initialized = true;
     uint16_t id;
-    bool res = modbus.readHreg(MODBUS_ADDRESS, uint16_t(Register::Id), &id);
-    if (!res) {
+    if (!get_id(id)) {
+        LOG_LN("Failed reading power supply id");
+        initialized = false;
         return false;
     }
-    // Wait until transaction is complete
-    while (modbus.server()) {
-        delay(1);
-        modbus.task();
-    }
+    initialized = false;
 
     if (60241 <= id) {
         this->type = "RD6024";
@@ -72,6 +71,7 @@ bool RidenModbus::begin()
         this->i_multi = 10000;
         this->p_multi = 1000;
     } else {
+        LOG_LN("Failed decoding power supply id");
         return false;
     }
 
@@ -646,73 +646,62 @@ bool RidenModbus::write_boolean(const Register reg, const boolean b)
     return write_holding_register(reg, value);
 }
 
-bool RidenModbus::read_holding_registers(const uint16_t offset, uint16_t *value, const uint16_t numregs)
+bool RidenModbus::wait_for_inactive()
 {
     if (!initialized) {
         return false;
     }
-
-    // Wait until no transaction is active
+    // Wait until no transaction is active or timeout has passed
+    unsigned long started_at = millis();
+    unsigned long wait_until = started_at + timeout;
     while (modbus.server()) {
         delay(1);
         modbus.task();
+        if (millis() > wait_until) {
+            LOG_LN("Timed out waiting for response from power supply module");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool RidenModbus::read_holding_registers(const uint16_t offset, uint16_t *value, const uint16_t numregs)
+{
+    if (!wait_for_inactive()) {
+        return false;
     }
     bool res = modbus.readHreg(MODBUS_ADDRESS, offset, value, numregs);
     if (!res) {
         return false;
     }
-    // Check if transaction is active
-    while (modbus.server()) {
-        delay(1);
-        modbus.task();
-    }
-    return true;
+    // Wait until we receive an answer
+    return wait_for_inactive();
 }
 
 bool RidenModbus::write_holding_register(const uint16_t offset, const uint16_t value)
 {
-    if (!initialized) {
+    if (!wait_for_inactive()) {
         return false;
-    }
-
-    // Wait until no transaction is active
-    while (modbus.server()) {
-        delay(1);
-        modbus.task();
     }
     bool res = modbus.writeHreg(MODBUS_ADDRESS, offset, value);
     if (!res) {
         return false;
     }
-    // Check if transaction is active
-    while (modbus.server()) {
-        delay(1);
-        modbus.task();
-    }
-    return true;
+    // Wait until we receive an answer
+    return wait_for_inactive();
 }
 
 bool RidenModbus::write_holding_registers(const uint16_t offset, uint16_t *value, uint16_t numregs)
 {
-    if (!initialized) {
+    if (!wait_for_inactive()) {
         return false;
-    }
-
-    // Wait until no transaction is active
-    while (modbus.server()) {
-        delay(1);
-        modbus.task();
     }
     bool res = modbus.writeHreg(MODBUS_ADDRESS, offset, value, numregs);
     if (!res) {
         return false;
     }
-    // Check if transaction is active
-    while (modbus.server()) {
-        delay(1);
-        modbus.task();
-    }
-    return true;
+    // Wait until we receive an answer
+    return wait_for_inactive();
 }
 
 bool RidenModbus::read_holding_registers(const Register reg, uint16_t *value, const uint16_t numregs)

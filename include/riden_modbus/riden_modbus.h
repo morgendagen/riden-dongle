@@ -279,6 +279,7 @@ class RidenModbus
 
   private:
     ModbusRTU modbus;
+    unsigned long timeout = 500; // milliseconds
     bool initialized = false;
     String type;
 
@@ -286,6 +287,13 @@ class RidenModbus
     double i_multi = 100.0;
     double p_multi = 100.0;
     double v_in_multi = 100.0;
+
+    /**
+     *  Wait until no transaction is active or timeout.
+     *
+     * @return `false` on failure.
+     */
+    bool wait_for_inactive();
 
     bool read_voltage(const Register reg, double &voltage);
     bool write_voltage(const Register reg, double voltage);

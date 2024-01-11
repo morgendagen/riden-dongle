@@ -29,7 +29,7 @@ static char hostname[100];
 static bool has_time = false;
 static bool did_update_time = false;
 
-static bool initialized = false;
+static bool connected = false;
 
 static RidenModbus riden_modbus;
 static RidenScpi riden_scpi(riden_modbus);
@@ -88,17 +88,23 @@ void setup()
         }
 
         riden_scpi.begin();
-        http_server.begin();
         modbus_bridge.begin();
 
         // turn off led
         led_ticker.detach();
         digitalWrite(LED_BUILTIN, HIGH);
 
-        initialized = true;
+        connected = true;
     } else {
+        if (!connect_wifi(nullptr)) {
+            ESP.reset();
+            delay(1000);
+        }
         led_ticker.attach(0.1, tick);
+        connected = false;
     }
+
+    http_server.begin();
 }
 
 static bool connect_wifi(const char *hostname)
@@ -122,16 +128,18 @@ static bool connect_wifi(const char *hostname)
     }
     if (wifi_connected) {
         experimental::ESP8266WiFiGratuitous::stationKeepAliveSetIntervalMs();
-        if (!MDNS.begin(hostname)) {
-            while (true) {
-                delay(100);
+        if (hostname != nullptr) {
+            if (!MDNS.begin(hostname)) {
+                while (true) {
+                    delay(100);
+                }
             }
-        }
-        String tz = riden_config.get_timezone_spec();
-        if (tz.length() > 0) {
-            // Get time via NTP
-            settimeofday_cb(on_time_received);
-            configTime(tz.c_str(), NTP_SERVER);
+            String tz = riden_config.get_timezone_spec();
+            if (tz.length() > 0) {
+                // Get time via NTP
+                settimeofday_cb(on_time_received);
+                configTime(tz.c_str(), NTP_SERVER);
+            }
         }
         LOG_LN("WiFi initialized");
     } else {
@@ -143,38 +151,35 @@ static bool connect_wifi(const char *hostname)
 
 void loop()
 {
-    if (!initialized) {
-        return;
-    }
+    if (connected) {
+        // Not using a ticker in order to
+        // visually inspect that the loop
+        // is running.
+        static uint32_t cnt = 0;
+        cnt++;
+        if (cnt % 40000 == 0) {
+            int state = digitalRead(LED_BUILTIN);
+            digitalWrite(LED_BUILTIN, !state);
+        }
 
-    // Not using a ticker in order to
-    // visually inspect that the loop
-    // is running.
-    static uint32_t cnt = 0;
-    cnt++;
-    if (cnt % 40000 == 0) {
-        int state = digitalRead(LED_BUILTIN);
-        digitalWrite(LED_BUILTIN, !state);
-    }
+        if (has_time && !did_update_time) {
+            LOG_LN("Setting PSU clock");
+            // Read time and convert to local timezone
+            time_t now;
+            tm tm;
+            time(&now);
+            localtime_r(&now, &tm);
 
-    MDNS.update();
+            riden_modbus.set_clock(tm);
+            did_update_time = true;
+        }
+
+        MDNS.update();
+        riden_modbus.loop();
+        riden_scpi.loop();
+        modbus_bridge.loop();
+    }
     http_server.loop();
-
-    if (has_time && !did_update_time) {
-        LOG_LN("Setting PSU clock");
-        // Read time and convert to local timezone
-        time_t now;
-        tm tm;
-        time(&now);
-        localtime_r(&now, &tm);
-
-        riden_modbus.set_clock(tm);
-        did_update_time = true;
-    }
-
-    riden_modbus.loop();
-    riden_scpi.loop();
-    modbus_bridge.loop();
 }
 
 void tick()
