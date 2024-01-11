@@ -75,9 +75,16 @@ static const char *HTML_CONFIG_BODY_1 =
 static const char *HTML_CONFIG_BODY_2 =
     "                    </select></td>"
     "                </tr>"
+    "                <tr>"
+    "                    <th>UART baudrate</th>"
+    "                    <td><select name='uart_baudrate'>";
+
+static const char *HTML_CONFIG_BODY_3 =
+    "                    </select></td>"
+    "                </tr>"
+    "                <tr><th></th><td><input type='submit' value='Save'></td></tr>"
     "            </tbody>"
     "        </table>"
-    "        <input type='submit' value='Save'>"
     "    </div>"
     "</form>"
     "<div class='box danger'>"
