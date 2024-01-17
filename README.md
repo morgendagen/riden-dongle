@@ -142,9 +142,8 @@ In order to update the firmware, you may prefer
 to use OTA update instead of having to remove
 the module.
 
-Reboot in to config portal using the web interface.
-Connect to the module's access point (see above),
-hit Update and select your new `firmware.bin`.
+From the `Configure` page you can upload a
+new firmware binary.
 
 
 ## Development

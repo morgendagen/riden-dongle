@@ -3,9 +3,13 @@
 # SPDX-FileCopyrightText: 2024 Peder Toftegaard Olsen
 #
 # SPDX-License-Identifier: MIT
+#
+# This example measures the number of Modbus TCP queries
+# that can be handled per second by reading register 8
+# (set voltage) continuously.
 
+import argparse
 import sys
-from time import sleep
 try:
     import pymodbus.client as ModbusClient
 except ImportError:
@@ -13,17 +17,32 @@ except ImportError:
     print("To install: python3 -m pip install pymodbus")
     sys.exit(1)
 
-RD_HOST = "rd6006-12345678.local"
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("hostname", help="Riden hostname, e.g. RD6006-12345678.local")
+    args = parser.parse_args()
+    hostname = args.hostname
 
-client = ModbusClient.ModbusTcpClient(RD_HOST, port=502, timeout=2)
-success = client.connect()
-if not success:
-    print("Failed to connect")
-    sys.exit(1)
-print(f"Connected")
+    print(f'Connecting to {hostname}')
+    client = ModbusClient.ModbusTcpClient(hostname, port=502, timeout=2)
+    success = client.connect()
+    if not success:
+        print(f"Failed connecting to {hostname}")
+        sys.exit(-1)
+    print(f"Connected")
 
-# Continuously read the "output on" register
-while True:
-    read = client.read_holding_registers(address=18, slave=1)
-    print(read.registers)
-    sleep(1)
+    try:
+        # Continuously read the "output on" register
+        import time
+        st = time.time()
+        cnt = 0
+        while True:
+            read = client.read_holding_registers(address=8, slave=1)
+            print(read.registers)
+            cnt += 1
+            print(cnt / (time.time() - st))
+    except KeyboardInterrupt:
+        pass
+    except:
+        print(f"Failed communicating with {hostname}")
+        exit(-1)

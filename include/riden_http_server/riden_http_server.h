@@ -35,6 +35,8 @@ class RidenHttpServer
     void handle_config_post();
     void handle_disconnect_client_post();
     void handle_reboot_dongle_get();
+    void handle_firmware_update_post();
+    void finish_firmware_update_post();
     void handle_not_found();
 
     void handle_modbus_qps();
