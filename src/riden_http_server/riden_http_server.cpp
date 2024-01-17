@@ -264,7 +264,7 @@ void RidenHttpServer::handle_config_get()
         }
     }
     send_as_chunks(HTML_CONFIG_BODY_2);
-    uint16_t uart_baudrate = riden_config.get_uart_baudrate();
+    uint32_t uart_baudrate = riden_config.get_uart_baudrate();
     for (uint32_t option : uart_baudrates) {
         String option_string(option, 10);
         if (option == uart_baudrate) {
@@ -282,7 +282,7 @@ void RidenHttpServer::handle_config_post()
 {
     String tz = server.arg("timezone");
     String uart_baudrate_string = server.arg("uart_baudrate");
-    uint32_t uart_baudrate = std::strtoul(uart_baudrate_string.c_str(), nullptr, 10);
+    uint32_t uart_baudrate = std::strtoull(uart_baudrate_string.c_str(), nullptr, 10);
     LOG_F("Selected timezone: %s\r\n", tz.c_str());
     LOG_F("Selected baudrate: %u\r\n", uart_baudrate);
     riden_config.set_timezone_name(tz);
