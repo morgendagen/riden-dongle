@@ -117,6 +117,7 @@ bool RidenHttpServer::begin()
     server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
     server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
     server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
+    server.on("/qps/modbus/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_modbus_qps, this));
     server.onNotFound(std::bind(&RidenHttpServer::handle_not_found, this));
     server.begin(port());
 
@@ -483,4 +484,26 @@ void RidenHttpServer::send_info_row(const String key, const String value)
 void RidenHttpServer::handle_not_found()
 {
     server.send(404, "text/plain", "404: Not found");
+}
+
+void RidenHttpServer::handle_modbus_qps()
+{
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", HTML_HEADER);
+    unsigned long start = millis();
+    double voltage;
+    uint16_t value;
+    for (int i = 0; i < 200; i++) {
+        // modbus.read_holding_registers(Register::VoltageSet, &value);
+        modbus.get_voltage_set(voltage);
+        //  yield();
+    }
+    unsigned long end = millis();
+    double qps = 1000.0 * double(100) / double(end - start);
+    LOG_F("qps = %f\r\n", qps);
+    server.sendContent("<p>QPS = ");
+    server.sendContent(String(qps));
+    server.sendContent(" requests/second</p>");
+    server.sendContent(HTML_FOOTER);
+    server.sendContent("");
 }
