@@ -152,16 +152,6 @@ static bool connect_wifi(const char *hostname)
 void loop()
 {
     if (connected) {
-        // Not using a ticker in order to
-        // visually inspect that the loop
-        // is running.
-        static uint32_t cnt = 0;
-        cnt++;
-        if (cnt % 40000 == 0) {
-            int state = digitalRead(LED_BUILTIN);
-            digitalWrite(LED_BUILTIN, !state);
-        }
-
         if (has_time && !did_update_time) {
             LOG_LN("Setting PSU clock");
             // Read time and convert to local timezone
