@@ -117,6 +117,9 @@ bool RidenHttpServer::begin()
     server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
     server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
     server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
+    server.on("/firmware/update/", HTTPMethod::HTTP_POST,
+              std::bind(&RidenHttpServer::finish_firmware_update_post, this),
+              std::bind(&RidenHttpServer::handle_firmware_update_post, this));
     server.onNotFound(std::bind(&RidenHttpServer::handle_not_found, this));
     server.begin(port());
 
@@ -290,6 +293,55 @@ void RidenHttpServer::handle_config_post()
     riden_config.commit();
 
     send_redirect_self();
+}
+
+void RidenHttpServer::handle_firmware_update_post()
+{
+    HTTPUpload &upload = server.upload();
+
+    if (upload.status == UPLOAD_FILE_START) {
+        // if(_debug) Serial.setDebugOutput(true);
+        uint32_t maxSketchSpace;
+
+        WiFiUDP::stopAll();
+        maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+
+        if (!Update.begin(maxSketchSpace)) { // start with max available size
+            Update.end();
+        }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        }
+    } else if (upload.status == UPLOAD_FILE_END) {
+        Update.end(true);
+    } else if (upload.status == UPLOAD_FILE_ABORTED) {
+        Update.end();
+    }
+    yield();
+}
+
+void RidenHttpServer::finish_firmware_update_post()
+{
+    if (Update.hasError()) {
+        server.client().setNoDelay(true);
+        server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        server.send(200, "text/html", HTML_HEADER);
+        server.sendContent(HTML_DONGLE_UPDATE_1);
+        server.sendContent(Update.getErrorString());
+        server.sendContent(HTML_DONGLE_UPDATE_2);
+        server.sendContent(HTML_FOOTER);
+        server.sendContent("");
+    } else {
+        server.client().setNoDelay(true);
+        server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        server.send(200, "text/html", HTML_HEADER);
+        server.sendContent(HTML_REBOOTING_DONGLE_UPDATE_BODY);
+        server.sendContent(HTML_FOOTER);
+        server.sendContent("");
+        delay(100);
+        server.client().stop();
+        ESP.restart();
+    }
 }
 
 void RidenHttpServer::handle_disconnect_client_post()
