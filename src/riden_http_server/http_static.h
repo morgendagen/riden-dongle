@@ -127,7 +127,7 @@ static const char *HTML_REBOOTING_DONGLE_BODY =
 
 static const char *HTML_REBOOTING_DONGLE_UPDATE_BODY =
     "<div class='box'>"
-    "    <h2>Dongle Firmware has been Updated</h2>"
+    "    <h2>Updated Dongle Firmware</h2>"
     "    <div><p>The dongle is now rebooting.</p>"
     "    <p>Redirecting to main page in <span id='counter'>20</span> seconds.</p>"
     "    <p><a href='/'>Return to main page</a></p>"
