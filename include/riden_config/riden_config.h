@@ -14,6 +14,9 @@ struct Timezone {
     const char *tz;
 };
 
+extern const char *version_string;
+extern const char *build_time;
+
 class RidenConfig
 {
   public:

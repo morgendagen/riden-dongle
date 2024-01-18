@@ -142,6 +142,7 @@ void RidenHttpServer::handle_root_get()
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", HTML_HEADER);
     if (modbus.is_connected()) {
+        send_dongle_info();
         send_power_supply_info();
         send_network_info();
         send_services();
@@ -419,6 +420,19 @@ void RidenHttpServer::send_redirect_self()
     server.sendContent("</body>");
     server.sendContent("</html>");
     server.sendContent("");
+}
+
+void RidenHttpServer::send_dongle_info()
+{
+    server.sendContent("        <div class='box'>");
+    server.sendContent("            <h2>Riden Dongle</h2>");
+    server.sendContent("            <table class='info'>");
+    server.sendContent("                <tbody>");
+    send_info_row("Version", RidenDongle::version_string);
+    send_info_row("Build Time", RidenDongle::build_time);
+    server.sendContent("                </tbody>");
+    server.sendContent("            </table>");
+    server.sendContent("        </div>");
 }
 
 void RidenHttpServer::send_power_supply_info()

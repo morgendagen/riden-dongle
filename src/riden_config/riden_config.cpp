@@ -34,6 +34,12 @@ struct RidenConfigStructV2 {
     uint32_t uart_baudrate;
 };
 
+#define STRINGIZER(arg) #arg
+#define STR_VALUE(arg) STRINGIZER(arg)
+
+const char *RidenDongle::version_string = STR_VALUE(BUILD_VERSION);
+const char *RidenDongle::build_time = STR_VALUE(BUILD_TIME);
+
 bool RidenConfig::begin()
 {
     EEPROM.begin(512);

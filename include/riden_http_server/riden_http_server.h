@@ -43,6 +43,7 @@ class RidenHttpServer
     void send_redirect_root();
     void send_redirect_self();
 
+    void send_dongle_info();
     void send_network_info();
     void send_services();
     void send_power_supply_info();
