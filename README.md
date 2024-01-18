@@ -26,16 +26,23 @@ The firmware has been tested with various tools and libraries:
 - Modbus RTU client communicating with Riden power supply firmware.
 - Modbus TCP bridge.
 - SCPI control.
-- Web interface to configure the dongle.
-- Web Portal to set up WiFi as well as do firmware updates (currently requires 2MB of flash memory).
+- Web interface to configure the dongle and update firmware.
 - Automatically set power supply clock based on NTP.
 - mDNS advertising.
+- Handles approximately 65 queries/second using Modbus TCP or SCPI
+  (tested using Unisoft v1.41.1k, UART baudrate set at 921600).
 
 
 ## Warning
 
 - When flashing the Riden WiFi module you _will_ erase the existing firmware.
 - The firmware provided in this repository comes with no warranty.
+
+
+## Query Performance
+
+The regular Riden power supply firmware is considerably slowe than UniSoft,
+handling less than 10 queries/second.
 
 
 ## Hardware Preparations
