@@ -87,6 +87,20 @@ static const char *HTML_CONFIG_BODY_3 =
     "        </table>"
     "    </div>"
     "</form>"
+    "<form method='post' action='/firmware/update/' enctype='multipart/form-data'>"
+    "    <div class='box'>"
+    "        <h2>Firmware Update</h2>"
+    "        <table class='info'>"
+    "            <tbody>"
+    "                <tr>"
+    "                    <th>Firmware .bin file</th>"
+    "                    <td><input type='file' name='firmware' accept='.bin'></td>"
+    "                </tr>"
+    "                <tr><th></th><td><input type='submit' value='Update'></td></tr>"
+    "            </tbody>"
+    "        </table>"
+    "    </div>"
+    "</form>"
     "<div class='box danger'>"
     "    <h2>Danger Zone</h2>"
     "    <a href='/reboot/dongle/'>Reboot Dongle</a><br>"
@@ -96,8 +110,9 @@ static const char *HTML_CONFIG_BODY_3 =
 static const char *HTML_REBOOTING_DONGLE_BODY =
     "<div class='box'>"
     "    <h2>Dongle is Rebooting</h2>"
-    "    <div>Redirecting to main page in <span id='counter'>10</span> seconds.</div>"
-    "    <a href='/'>Return to main page</a>"
+    "    <div><p>Redirecting to main page in <span id='counter'>10</span> seconds.</p>"
+    "    <p><a href='/'>Return to main page</a></p>"
+    "    </div>"
     "</div>"
     "<script>"
     "    setInterval(function() {"
@@ -109,6 +124,34 @@ static const char *HTML_REBOOTING_DONGLE_BODY =
     "        }"
     "    }, 1000);"
     "</script>";
+
+static const char *HTML_REBOOTING_DONGLE_UPDATE_BODY =
+    "<div class='box'>"
+    "    <h2>Updated Dongle Firmware</h2>"
+    "    <div><p>The dongle is now rebooting.</p>"
+    "    <p>Redirecting to main page in <span id='counter'>20</span> seconds.</p>"
+    "    <p><a href='/'>Return to main page</a></p>"
+    "    </div>"
+    "</div>"
+    "<script>"
+    "    setInterval(function() {"
+    "        var div = document.querySelector('#counter');"
+    "        var count = div.textContent * 1 - 1;"
+    "        div.textContent = count;"
+    "        if (count <= 0) {"
+    "            window.location.replace('/');"
+    "        }"
+    "    }, 1000);"
+    "</script>";
+
+static const char *HTML_DONGLE_UPDATE_1 =
+    "<div class='box'>"
+    "    <h2>Dongle Firmware Failed to Update</h2>"
+    "    <div><p>The failure is: <b>";
+
+static const char *HTML_DONGLE_UPDATE_2 =
+    "</b>."
+    "</div>";
 
 static const char *HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_1 =
     "<div class='box'>"

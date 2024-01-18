@@ -117,6 +117,10 @@ bool RidenHttpServer::begin()
     server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
     server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
     server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
+    server.on("/firmware/update/", HTTPMethod::HTTP_POST,
+              std::bind(&RidenHttpServer::finish_firmware_update_post, this),
+              std::bind(&RidenHttpServer::handle_firmware_update_post, this));
+    server.on("/qps/modbus/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_modbus_qps, this));
     server.onNotFound(std::bind(&RidenHttpServer::handle_not_found, this));
     server.begin(port());
 
@@ -265,7 +269,7 @@ void RidenHttpServer::handle_config_get()
         }
     }
     send_as_chunks(HTML_CONFIG_BODY_2);
-    uint16_t uart_baudrate = riden_config.get_uart_baudrate();
+    uint32_t uart_baudrate = riden_config.get_uart_baudrate();
     for (uint32_t option : uart_baudrates) {
         String option_string(option, 10);
         if (option == uart_baudrate) {
@@ -283,7 +287,7 @@ void RidenHttpServer::handle_config_post()
 {
     String tz = server.arg("timezone");
     String uart_baudrate_string = server.arg("uart_baudrate");
-    uint32_t uart_baudrate = std::strtoul(uart_baudrate_string.c_str(), nullptr, 10);
+    uint32_t uart_baudrate = std::strtoull(uart_baudrate_string.c_str(), nullptr, 10);
     LOG_F("Selected timezone: %s\r\n", tz.c_str());
     LOG_F("Selected baudrate: %u\r\n", uart_baudrate);
     riden_config.set_timezone_name(tz);
@@ -291,6 +295,55 @@ void RidenHttpServer::handle_config_post()
     riden_config.commit();
 
     send_redirect_self();
+}
+
+void RidenHttpServer::handle_firmware_update_post()
+{
+    HTTPUpload &upload = server.upload();
+
+    if (upload.status == UPLOAD_FILE_START) {
+        // if(_debug) Serial.setDebugOutput(true);
+        uint32_t maxSketchSpace;
+
+        WiFiUDP::stopAll();
+        maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+
+        if (!Update.begin(maxSketchSpace)) { // start with max available size
+            Update.end();
+        }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        }
+    } else if (upload.status == UPLOAD_FILE_END) {
+        Update.end(true);
+    } else if (upload.status == UPLOAD_FILE_ABORTED) {
+        Update.end();
+    }
+    yield();
+}
+
+void RidenHttpServer::finish_firmware_update_post()
+{
+    if (Update.hasError()) {
+        server.client().setNoDelay(true);
+        server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        server.send(200, "text/html", HTML_HEADER);
+        server.sendContent(HTML_DONGLE_UPDATE_1);
+        server.sendContent(Update.getErrorString());
+        server.sendContent(HTML_DONGLE_UPDATE_2);
+        server.sendContent(HTML_FOOTER);
+        server.sendContent("");
+    } else {
+        server.client().setNoDelay(true);
+        server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        server.send(200, "text/html", HTML_HEADER);
+        server.sendContent(HTML_REBOOTING_DONGLE_UPDATE_BODY);
+        server.sendContent(HTML_FOOTER);
+        server.sendContent("");
+        delay(100);
+        server.client().stop();
+        ESP.restart();
+    }
 }
 
 void RidenHttpServer::handle_disconnect_client_post()
@@ -497,4 +550,23 @@ void RidenHttpServer::send_info_row(const String key, const String value)
 void RidenHttpServer::handle_not_found()
 {
     server.send(404, "text/plain", "404: Not found");
+}
+
+void RidenHttpServer::handle_modbus_qps()
+{
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", HTML_HEADER);
+    unsigned long start = millis();
+    double voltage;
+    for (int i = 0; i < 200; i++) {
+        modbus.get_voltage_set(voltage);
+    }
+    unsigned long end = millis();
+    double qps = 1000.0 * double(100) / double(end - start);
+    LOG_F("qps = %f\r\n", qps);
+    server.sendContent("<p>Result = ");
+    server.sendContent(String(qps, 1));
+    server.sendContent(" queries/second</p>");
+    server.sendContent(HTML_FOOTER);
+    server.sendContent("");
 }
