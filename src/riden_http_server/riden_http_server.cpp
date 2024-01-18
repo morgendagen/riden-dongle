@@ -425,7 +425,7 @@ void RidenHttpServer::send_redirect_self()
 void RidenHttpServer::send_dongle_info()
 {
     server.sendContent("        <div class='box'>");
-    server.sendContent("            <a style='float:right' href='/psu/'>Details</a><h2>Riden Dongle</h2>");
+    server.sendContent("            <h2>Riden Dongle</h2>");
     server.sendContent("            <table class='info'>");
     server.sendContent("                <tbody>");
     send_info_row("Version", RidenDongle::version_string);
