@@ -544,18 +544,15 @@ void RidenHttpServer::handle_modbus_qps()
     server.send(200, "text/html", HTML_HEADER);
     unsigned long start = millis();
     double voltage;
-    uint16_t value;
     for (int i = 0; i < 200; i++) {
-        // modbus.read_holding_registers(Register::VoltageSet, &value);
         modbus.get_voltage_set(voltage);
-        //  yield();
     }
     unsigned long end = millis();
     double qps = 1000.0 * double(100) / double(end - start);
     LOG_F("qps = %f\r\n", qps);
-    server.sendContent("<p>QPS = ");
-    server.sendContent(String(qps));
-    server.sendContent(" requests/second</p>");
+    server.sendContent("<p>Result = ");
+    server.sendContent(String(qps, 1));
+    server.sendContent(" queries/second</p>");
     server.sendContent(HTML_FOOTER);
     server.sendContent("");
 }
