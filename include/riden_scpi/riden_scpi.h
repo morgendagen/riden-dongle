@@ -10,12 +10,10 @@
 #include <SCPI_Parser.h>
 #include <list>
 
-#define READ_BUFFER_LENGTH (100)
 #define WRITE_BUFFER_LENGTH (256)
 #define SCPI_INPUT_BUFFER_LENGTH 256
 #define SCPI_ERROR_QUEUE_SIZE 17
 #define DEFAULT_SCPI_PORT 5025
-#define SCPI_MAX_CLIENTS 1
 
 namespace RidenDongle
 {
@@ -36,9 +34,10 @@ class RidenScpi
     RidenModbus &ridenModbus;
 
     bool initialized = false;
-    char idn2[20] = {0}; // <model number>
-    char idn3[10] = {0}; // <serial number>
-    char idn4[10] = {0}; // <firmware revision>
+    const char *idn1 = "Riden"; // <company name>
+    char idn2[20] = {0};        // <model number>
+    char idn3[10] = {0};        // <serial number>
+    char idn4[10] = {0};        // <firmware revision>
 
     scpi_t scpi_context;
     char scpi_input_buffer[SCPI_INPUT_BUFFER_LENGTH] = {};
@@ -51,7 +50,9 @@ class RidenScpi
     static scpi_interface_t scpi_interface;
 
     WiFiServer tcpServer;
-    WiFiClient clients[SCPI_MAX_CLIENTS];
+    WiFiClient client;
+
+    void reset_buffers();
 
     // SCPI Functions and Commands
     // ===========================
