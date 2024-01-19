@@ -133,10 +133,10 @@ scpi_result_t RidenScpi::SCPI_Flush(scpi_t *context)
 {
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
-    if (ridenScpi->clients[0]) {
-        ridenScpi->clients[0].write(ridenScpi->write_buffer, ridenScpi->write_buffer_length);
+    if (ridenScpi->client) {
+        ridenScpi->client.write(ridenScpi->write_buffer, ridenScpi->write_buffer_length);
         ridenScpi->write_buffer_length = 0;
-        ridenScpi->clients[0].flush();
+        ridenScpi->client.flush();
     }
 
     return SCPI_RES_OK;
@@ -683,16 +683,13 @@ bool RidenScpi::loop()
     WiFiClient newClient = tcpServer.accept();
     if (newClient) {
         bool reject = true;
-        for (byte i = 0; i < SCPI_MAX_CLIENTS; i++) {
-            if (!clients[i]) {
-                // Once we "accept", the client is no longer tracked by WiFiServer
-                // so we must store it into our list of clients
-                newClient.setTimeout(100);
-                newClient.setNoDelay(true);
-                clients[i] = newClient;
-                reject = false;
-                break;
-            }
+        if (!client) {
+            // Once we "accept", the client is no longer tracked by WiFiServer
+            // so we must store it into our list of clients
+            newClient.setTimeout(100);
+            newClient.setNoDelay(true);
+            client = newClient;
+            reject = false;
         }
         if (reject) {
             newClient.stop();
@@ -702,18 +699,14 @@ bool RidenScpi::loop()
     static char readBuffer[READ_BUFFER_LENGTH];
 
     // check for incoming data from all clients
-    for (byte i = 0; i < SCPI_MAX_CLIENTS; i++) {
-        if (clients[i].available() > 0) {
-            size_t bytesRead = clients[i].readBytes(readBuffer, clients[i].available());
-            SCPI_Input(&scpi_context, readBuffer, bytesRead);
-        }
+    if (client.available() > 0) {
+        size_t bytesRead = client.readBytes(readBuffer, client.available());
+        SCPI_Input(&scpi_context, readBuffer, bytesRead);
     }
 
     // stop any clients which disconnect
-    for (byte i = 0; i < SCPI_MAX_CLIENTS; i++) {
-        if (clients[i] && !clients[i].connected()) {
-            clients[i].stop();
-        }
+    if (client && !client.connected()) {
+        client.stop();
     }
 
     return true;
@@ -727,19 +720,15 @@ uint16_t RidenScpi::port()
 std::list<IPAddress> RidenScpi::get_connected_clients()
 {
     std::list<IPAddress> connected_clients;
-    for (byte i = 0; i < SCPI_MAX_CLIENTS; i++) {
-        if (clients[i] && clients[i].connected()) {
-            connected_clients.push_back(clients[i].remoteIP());
-        }
+    if (client && client.connected()) {
+        connected_clients.push_back(client.remoteIP());
     }
     return connected_clients;
 }
 
 void RidenScpi::disconnect_client(const IPAddress &ip)
 {
-    for (byte i = 0; i < SCPI_MAX_CLIENTS; i++) {
-        if (clients[i] && clients[i].connected() && clients[i].remoteIP() == ip) {
-            clients[i].stop();
-        }
+    if (client && client.connected() && client.remoteIP() == ip) {
+        client.stop();
     }
 }

@@ -15,7 +15,6 @@
 #define SCPI_INPUT_BUFFER_LENGTH 256
 #define SCPI_ERROR_QUEUE_SIZE 17
 #define DEFAULT_SCPI_PORT 5025
-#define SCPI_MAX_CLIENTS 1
 
 namespace RidenDongle
 {
@@ -51,7 +50,7 @@ class RidenScpi
     static scpi_interface_t scpi_interface;
 
     WiFiServer tcpServer;
-    WiFiClient clients[SCPI_MAX_CLIENTS];
+    WiFiClient client;
 
     // SCPI Functions and Commands
     // ===========================
