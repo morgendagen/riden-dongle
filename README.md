@@ -62,9 +62,17 @@ development you may want to terminate the wires in a Dupont header connector
 allowing you to more easily use an ESP01 USB Serial Adapter or similar.
 
 
+## Download the Firmware from GitHub
+
+Firmware files will be
+[released on GitHub](https://github.com/morgendagen/riden-dongle/releases)
+as part of the repository.
+
+
 ## Compiling the Firmware
 
-You will need [PlatformIO](https://platformio.org/) to compile the
+You will need [PlatformIO](https://platformio.org/) in order to
+compile the
 firmware.
 
 No configuration is necessary; simply execute `pio run` and wait.
