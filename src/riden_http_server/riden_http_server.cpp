@@ -391,6 +391,7 @@ void RidenHttpServer::send_as_chunks(const char *str)
     for (size_t start_pos = 0; start_pos < length; start_pos += chunk_length) {
         size_t end_pos = min(start_pos + chunk_length, length);
         server.sendContent(&(str[start_pos]), end_pos - start_pos);
+        yield();
     }
 }
 
@@ -429,7 +430,9 @@ void RidenHttpServer::send_dongle_info()
     server.sendContent("            <table class='info'>");
     server.sendContent("                <tbody>");
     send_info_row("Version", RidenDongle::version_string);
-    send_info_row("Build Time", RidenDongle::build_time);
+    if (RidenDongle::build_time != nullptr) {
+        send_info_row("Build Time", RidenDongle::build_time);
+    }
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");

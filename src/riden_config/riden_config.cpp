@@ -38,7 +38,11 @@ struct RidenConfigStructV2 {
 #define STR_VALUE(arg) STRINGIZER(arg)
 
 const char *RidenDongle::version_string = STR_VALUE(BUILD_VERSION);
+#ifdef BUILD_TIME
 const char *RidenDongle::build_time = STR_VALUE(BUILD_TIME);
+#else
+const char *RidenDongle::build_time = nullptr;
+#endif
 
 bool RidenConfig::begin()
 {

@@ -10,8 +10,8 @@ firmware_version = os.environ.get('VERSION', "")
 
 # Clean up the version number
 if firmware_version == "":
-    # When no version is specified default to "0.0.1"
-    firmware_version = "0.0.1"
+    # When no version is specified default to "DEVELOPMENT"
+    firmware_version = "DEVELOPMENT"
 
 print(f'Using version {firmware_version} for the build')
 
@@ -19,3 +19,7 @@ print(f'Using version {firmware_version} for the build')
 env.Append(CPPDEFINES=[
     f'BUILD_VERSION={firmware_version}',
 ])
+
+if firmware_version != "DEVELOPMENT":
+    # Set the output filename to the name of the board and the version
+    env.Replace(PROGNAME=f'firmware_{env["PIOENV"]}_{firmware_version.replace(".", "_")}')

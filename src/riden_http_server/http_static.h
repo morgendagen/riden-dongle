@@ -94,7 +94,7 @@ static const char *HTML_CONFIG_BODY_3 =
     "            <tbody>"
     "                <tr>"
     "                    <th>Firmware .bin file</th>"
-    "                    <td><input type='file' name='firmware' accept='.bin'></td>"
+    "                    <td><input type='file' name='firmware' accept='.bin,.gz'></td>"
     "                </tr>"
     "                <tr><th></th><td><input type='submit' value='Update'></td></tr>"
     "            </tbody>"
