@@ -2,7 +2,7 @@
 
 This file lists the SCPI commands implemented in the firmware.
 
-Mandated and required SCPI commands are recognized as well,
+Mandated and required SCPI commands are recognised as well,
 but may not perform as expected.
 
 

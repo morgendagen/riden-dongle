@@ -41,7 +41,7 @@ The firmware has been tested with various tools and libraries:
 
 ## Query Performance
 
-The regular Riden power supply firmware is considerably slowe than UniSoft,
+The regular Riden power supply firmware is considerably slower than UniSoft,
 handling less than 10 queries/second.
 
 
@@ -68,7 +68,7 @@ You will need [PlatformIO](https://platformio.org/) to compile the
 firmware.
 
 No configuration is necessary; simply execute `pio run` and wait.
-The firmware is located at `.pio/build/esp01_1m/firmware.bin`.
+The firmware is located at `.pio/build/esp12e/firmware.bin`.
 
 
 ## Flashing the Firmware
@@ -97,17 +97,19 @@ an issue to the Github repository.
 
 If all is well, the module has created a new access
 point, named `RDxxxx-ssssssss` (`xxxx` is the model
-and `ssssssss` is the serial number).
+and `ssssssss` is the serial number), e.g.
+`RD6006-00001234`.
 
 Connect to this access point, and you will be greeted
-by a web page for configuring the WiFi network that the
-module should connect to.
+by a web page allowing you to configure the WiFi network
+that the module should connect to.
 
 Follow the instructions, and save the configuration.
 
 If all goes well, the blue LED will start to flash slowly
-after a short while. You should now be able to connect
-to it at http://RDxxxx-ssssssss.local.
+after a short while, and eventually stop. You should now
+be able to connect to the dongle at
+http://RDxxxx-ssssssss.local.
 
 
 ## Using lxi-tools to Verify Installation
@@ -139,15 +141,16 @@ Invoke
 
 to set the voltage to 3.3V
 
-A description of the available commands are available
-in [SCPI_COMMANDS.md](SCPI_COMMANDS.md).
+A description of the implemented commands is
+available in [SCPI_COMMANDS.md](SCPI_COMMANDS.md).
 
 
 ## OTA firmware update
 
 In order to update the firmware, you may prefer
 to use OTA update instead of having to remove
-the module.
+the module from the power supply and connecting
+it to a computer.
 
 From the `Configure` page you can upload a
 new firmware binary.
@@ -166,10 +169,14 @@ This allows simultaneously having the NodeMCU connected
 to the power supply and using the USB serial port for
 flashing as well as monitor log output.
 
+Beware that this configuration uses `SoftwareSerial`
+for the connection to the power supply, which limits
+the safe UART baudrate to 38400 bps.
+
 
 ## Limitations
 
-The Riden power supply firmware have some quirks, described
+The Riden power supply firmware has some quirks as described
 below. The firmware provided here err towards caution, and
 does not implement functionality that is known to be
 unreliable.
@@ -187,12 +194,11 @@ Therefore I have decided NOT to support `*SAV`. `*RCL` is implemented.
 The Preset register (19) only reflects the active preset if
 changed via the modbus interface. It is not updated if a preset
 is selected using the front panel. Therefore it is currently not
-possible to retrieve the selected preset. `*RCL` is available for
-_recalling_ a preset.
+possible to retrieve the selected preset.
 
 ### Language Selection
 
-Only 0 and 1 are recognized when setting the Language register. Reading
+Only 0 and 1 are recognised when setting the Language register. Reading
 the register matches the language set from the front panel.
 
 ### Keypad
