@@ -29,3 +29,5 @@ the safe UART baudrate to 38400 bps.
 To test the release workflow execute:
 
     $ act --container-architecture linux/amd64 --artifact-server-path $PWD/act-cache -e act/release.json -W .github/workflows/release.yaml
+
+Note that the `Release` step will fail.

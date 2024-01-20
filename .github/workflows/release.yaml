@@ -33,8 +33,9 @@ jobs:
           PLATFORMIO_BUILD_FLAGS: -D SPECIFIC_MACRO -I/extra/inc
           VERSION: ${{ steps.get_version.outputs.version-without-v }}
 
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v2
+      - name: Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: firmware
-          path: .pio/build/**/firmware_*.bin
+          files: |
+            .pio/build/*/firmware_*.bin
+            .pio/build/*/firmware_*.bin.gz
