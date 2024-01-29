@@ -493,7 +493,10 @@ void RidenHttpServer::send_services()
     server.sendContent("                <tbody>");
     send_info_row("Web Server Port", String(this->port(), 10));
     send_info_row("Modbus TCP Port", String(bridge.port(), 10));
-    send_info_row("SCPI Port", String(scpi.port(), 10));
+    String scpi_port = String(scpi.port(), 10);
+    send_info_row("SCPI Port", scpi_port);
+    String visa_resource = "TCPIP::" + WiFi.localIP().toString() + "::" + scpi_port + "::SOCKET";
+    send_info_row("VISA Resource Address", visa_resource);
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
