@@ -74,10 +74,14 @@ void setup()
     riden_config.begin();
 
     // Wait for power supply firmware to boot
-    delay(5000);
+    unsigned long boot_delay_start = millis();
+    while(!riden_modbus.begin()){
+        if(millis() - boot_delay_start >= 5000L) break;
+        delay(100);
+    }
 
     // We need modbus initialised to read type and serial number
-    if (riden_modbus.begin()) {
+    if (riden_modbus.is_connected()) {
         uint32_t serial_number;
         riden_modbus.get_serial_number(serial_number);
         sprintf(hostname, "%s-%08u", riden_modbus.get_type().c_str(), serial_number);
