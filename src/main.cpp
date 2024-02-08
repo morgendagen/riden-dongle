@@ -10,6 +10,7 @@
 #include <riden_scpi/riden_scpi.h>
 
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiGratuitous.h>
@@ -141,6 +142,8 @@ static bool connect_wifi(const char *hostname)
                 configTime(tz.c_str(), NTP_SERVER);
             }
         }
+        ArduinoOTA.setHostname(hostname);
+        ArduinoOTA.begin();
         LOG_LN("WiFi initialized");
     } else {
         LOG_LN("WiFi failed to initialize");
@@ -170,6 +173,7 @@ void loop()
         modbus_bridge.loop();
     }
     http_server.loop();
+    ArduinoOTA.handle();
 }
 
 void tick()
