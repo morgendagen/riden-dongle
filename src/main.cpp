@@ -144,6 +144,11 @@ static bool connect_wifi(const char *hostname)
         }
         ArduinoOTA.setHostname(hostname);
         ArduinoOTA.begin();
+        MDNS.addServiceTxt("arduino", "tcp", "app_version", RidenDongle::version_string);
+        if (RidenDongle::build_time != nullptr) {
+            MDNS.addServiceTxt("arduino", "tcp", "build_date", RidenDongle::build_time);
+        }
+        MDNS.addServiceTxt("arduino", "tcp", "mac", WiFi.macAddress());
         LOG_LN("WiFi initialized");
     } else {
         LOG_LN("WiFi failed to initialize");
