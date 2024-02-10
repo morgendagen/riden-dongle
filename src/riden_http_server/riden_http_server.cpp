@@ -8,6 +8,7 @@
 #include <riden_logging/riden_logging.h>
 
 #include <ESP8266mDNS.h>
+#include <TinyTemplateEngineMemoryReader.h>
 #include <list>
 
 using namespace RidenDongle;
@@ -115,6 +116,7 @@ bool RidenHttpServer::begin()
     server.on("/firmware/update/", HTTPMethod::HTTP_POST,
               std::bind(&RidenHttpServer::finish_firmware_update_post, this),
               std::bind(&RidenHttpServer::handle_firmware_update_post, this));
+    server.on("/lxi/identification", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_lxi_identification, this));
     server.on("/qps/modbus/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_modbus_qps, this));
     server.onNotFound(std::bind(&RidenHttpServer::handle_not_found, this));
     server.begin(port());
@@ -442,22 +444,15 @@ void RidenHttpServer::send_dongle_info()
 
 void RidenHttpServer::send_power_supply_info()
 {
-    uint16_t firmware_version;
-    uint32_t serial_number;
     String type = modbus.get_type();
-    modbus.get_firmware_version(firmware_version);
-    modbus.get_serial_number(serial_number);
-    char tmp_string[10];
 
     server.sendContent("        <div class='box'>");
     server.sendContent("            <a style='float:right' href='/psu/'>Details</a><h2>Power Supply</h2>");
     server.sendContent("            <table class='info'>");
     server.sendContent("                <tbody>");
     send_info_row("Model", type);
-    sprintf(tmp_string, "%u.%u", firmware_version / 100u, firmware_version % 100u);
-    send_info_row("Firmware", tmp_string);
-    sprintf(tmp_string, "%08u", serial_number);
-    send_info_row("Serial Number", String(tmp_string));
+    send_info_row("Firmware", get_firmware_version());
+    send_info_row("Serial Number", get_serial_number());
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
@@ -497,8 +492,7 @@ void RidenHttpServer::send_services()
     send_info_row("Modbus TCP Port", String(bridge.port(), 10));
     String scpi_port = String(scpi.port(), 10);
     send_info_row("SCPI Port", scpi_port);
-    String visa_resource = "TCPIP::" + WiFi.localIP().toString() + "::" + scpi_port + "::SOCKET";
-    send_info_row("VISA Resource Address", visa_resource);
+    send_info_row("VISA Resource Address", get_visa_resource());
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
@@ -577,4 +571,64 @@ void RidenHttpServer::handle_modbus_qps()
     server.sendContent(" queries/second</p>");
     server.sendContent(HTML_FOOTER);
     server.sendContent("");
+}
+
+void RidenHttpServer::handle_lxi_identification()
+{
+    String model = modbus.get_type();
+    String ip = WiFi.localIP().toString();
+    String subnet_mask = WiFi.subnetMask().toString();
+    String mac_address = WiFi.macAddress();
+    String gateway = WiFi.gatewayIP().toString();
+    // The values to be substituted
+    const char *values[] = {
+        model.c_str(),
+        get_serial_number(),
+        get_firmware_version(),
+        WiFi.getHostname(),
+        ip.c_str(),
+        subnet_mask.c_str(),
+        mac_address.c_str(),
+        gateway.c_str(),
+        get_visa_resource(),
+        0 // Guard against wrong parameters, such as ${9999}
+    };
+    TinyTemplateEngineMemoryReader reader(LXI_IDENTIFICATION_TEMPLATE);
+    reader.keepLineEnds(true);
+
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/xml");
+    TinyTemplateEngine engine(reader);
+    engine.start(values);
+    while (const char *line = engine.nextLine()) {
+        server.sendContent(line);
+    }
+    engine.end();
+    server.sendContent(""); // Done
+}
+
+const char *RidenHttpServer::get_firmware_version()
+{
+    static char firmware_version_string[10];
+
+    uint16_t firmware_version;
+    modbus.get_firmware_version(firmware_version);
+    sprintf(firmware_version_string, "%u.%u", firmware_version / 100u, firmware_version % 100u);
+    return firmware_version_string;
+}
+
+const char *RidenHttpServer::get_serial_number()
+{
+    static char serial_number_string[10];
+    uint32_t serial_number;
+    modbus.get_serial_number(serial_number);
+    sprintf(serial_number_string, "%08u", serial_number);
+    return serial_number_string;
+}
+
+const char *RidenHttpServer::get_visa_resource()
+{
+    static char visa_resource[40];
+    sprintf(visa_resource, "TCPIP::%s::%u::SOCKET", WiFi.localIP().toString().c_str(), scpi.port());
+    return visa_resource;
 }

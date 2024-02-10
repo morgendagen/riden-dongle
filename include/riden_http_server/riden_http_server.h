@@ -37,6 +37,7 @@ class RidenHttpServer
     void handle_reboot_dongle_get();
     void handle_firmware_update_post();
     void finish_firmware_update_post();
+    void handle_lxi_identification();
     void handle_not_found();
 
     void handle_modbus_qps();
@@ -52,6 +53,10 @@ class RidenHttpServer
     void send_as_chunks(const char *str);
     void send_info_row(const String key, const String value);
     void send_client_row(const IPAddress &ip, const String protocol);
+
+    const char *get_firmware_version();
+    const char *get_serial_number();
+    const char *get_visa_resource();
 };
 
 } // namespace RidenDongle
