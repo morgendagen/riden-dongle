@@ -106,11 +106,6 @@ static String language_to_string(uint16_t language_id)
 
 bool RidenHttpServer::begin()
 {
-    if (MDNS.isRunning() && modbus.is_connected()) {
-        MDNS.addService("lxi", "tcp", port()); // allows discovery by lxi-tools
-        MDNS.addService("http", "tcp", port());
-    }
-
     server.on("/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_root_get, this));
     server.on("/psu/", HTTP_GET, std::bind(&RidenHttpServer::handle_psu_get, this));
     server.on("/config/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_config_get, this));
@@ -123,6 +118,13 @@ bool RidenHttpServer::begin()
     server.on("/qps/modbus/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_modbus_qps, this));
     server.onNotFound(std::bind(&RidenHttpServer::handle_not_found, this));
     server.begin(port());
+
+    if (MDNS.isRunning() && modbus.is_connected()) {
+        auto lxi_service = MDNS.addService(NULL, "lxi", "tcp", port()); // allows discovery by lxi-tools
+        MDNS.addServiceTxt(lxi_service, "path", "/");
+        auto http_service = MDNS.addService(NULL, "http", "tcp", port());
+        MDNS.addServiceTxt(http_service, "path", "/");
+    }
 
     return true;
 }

@@ -667,8 +667,10 @@ bool RidenScpi::begin()
     tcpServer.begin();
     tcpServer.setNoDelay(true);
 
-    // Add scpi-raw service to MDNS-SD
-    MDNS.addService("scpi-raw", "tcp", tcpServer.port());
+    if (MDNS.isRunning()) {
+        auto scpi_service = MDNS.addService(NULL, "scpi-raw", "tcp", tcpServer.port());
+        MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
+    }
 
     LOG_LN("RidenScpi initialized");
 
