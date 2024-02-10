@@ -31,8 +31,11 @@ bool RidenModbusBridge::begin()
     modbus_tcp.onRaw(::modbus_tcp_raw_callback);
     modbus_tcp.server();
 
-    // See https://github.com/espressif/esp-idf/blob/master/examples/protocols/modbus/tcp/mb_tcp_master/main/tcp_master.c#L266
-    MDNS.addService("modbus", "tcp", MODBUSTCP_PORT);
+    if (MDNS.isRunning()) {
+        // See https://github.com/espressif/esp-idf/blob/master/examples/protocols/modbus/tcp/mb_tcp_master/main/tcp_master.c#L266
+        auto modbus_service = MDNS.addService(NULL, "modbus", "tcp", MODBUSTCP_PORT);
+        MDNS.addServiceTxt(modbus_service, "unitid", MODBUS_ADDRESS);
+    }
 
     LOG_LN("RidenModbusBridge initialized");
 
