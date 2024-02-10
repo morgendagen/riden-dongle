@@ -170,3 +170,40 @@ static const char *HTML_NO_CONNECTION_BODY =
     "    <p>You must power-cycle the power supply if you modified"
     " its configuration.</p>"
     "</div>";
+
+/**
+ * @brief LXI identification document template.
+ *
+ * Substitution variables:
+ *
+ * 0 = Model
+ * 1 = Serial Number
+ * 2 = Firmware Revision
+ * 3 = Hostname
+ * 4 = IP Address
+ * 5 = Subnet mask
+ * 6 = MAC Address
+ * 7 = IP Gateway
+ * 8 = VISA Resource Address
+ */
+static const char *LXI_IDENTIFICATION_TEMPLATE = R"==(<?xml version="1.0" encoding="UTF-8" ?>
+<LXIDevice xmlns="http://www.lxistandard.org/InstrumentIdentification/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.lxistandard.org/InstrumentIdentification/1.0/LXIIdentification.xsd">
+    <Manufacturer>Riden</Manufacturer>
+    <Model>${0}</Model>
+    <SerialNumber>${1}</SerialNumber>
+    <FirmwareRevision>${2}</FirmwareRevision>
+    <ManufacturerDescription>Power Supply</ManufacturerDescription>
+    <IdentificationURL>http://${3}.local/lxi/identification</IdentificationURL>
+    <Interface xsi:type="NetworkInformation" InterfaceType="LXI" IPType="IPv4">
+        <InstrumentAddressString>${8}</InstrumentAddressString>
+        <Hostname>${3}</Hostname>
+        <IPAddress>${4}</IPAddress>
+        <SubnetMask>${5}</SubnetMask>
+        <MACAddress>${6}</MACAddress>
+        <Gateway>${7}</Gateway>
+        <DHCPEnabled>true</DHCPEnabled>
+        <AutoIPEnabled>true</AutoIPEnabled>
+    </Interface>
+    <LXIVersion>1.5</LXIVersion>
+</LXIDevice>
+)==";
