@@ -51,9 +51,7 @@ bool RidenModbus::begin()
     }
     initialized = false;
 
-    if (60241 <= id) {
-        this->type = "RD6024";
-    } else if (60180 <= id && id <= 60189) {
+    if (60180 <= id && id <= 60189) {
         this->type = "RD6018";
     } else if (60120 <= id && id <= 60124) {
         this->type = "RD6012";
@@ -70,6 +68,10 @@ bool RidenModbus::begin()
         this->v_multi = 1000;
         this->i_multi = 10000;
         this->p_multi = 1000;
+    } else if (id == 60301) {
+        this->type = "RD6030";
+    } else if (60241 <= id) {
+        this->type = "RD6024";
     } else {
         LOG_LN("Failed decoding power supply id");
         return false;
@@ -133,7 +135,8 @@ bool RidenModbus::get_all_values(AllValues &all_values)
     all_values.probe_temperature_fahrenheit = values_to_temperature(&(values[+Register::ProbeTemperatureFarhenheit_Sign]));
     all_values.ah = values_to_ah(&(values[+Register::AH_H]));
     all_values.wh = values_to_wh(&(values[+Register::WH_H]));
-    values_to_tm(all_values.clock, &(values[+Register::Year]));
+    if (this->id)
+        values_to_tm(all_values.clock, &(values[+Register::Year]));
     all_values.is_take_ok = values[+Register::TakeOk] != 0;
     all_values.is_take_out = values[+Register::TakeOut] != 0;
     all_values.is_power_on_boot = values[+Register::PowerOnBoot] != 0;
