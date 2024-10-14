@@ -135,8 +135,7 @@ bool RidenModbus::get_all_values(AllValues &all_values)
     all_values.probe_temperature_fahrenheit = values_to_temperature(&(values[+Register::ProbeTemperatureFarhenheit_Sign]));
     all_values.ah = values_to_ah(&(values[+Register::AH_H]));
     all_values.wh = values_to_wh(&(values[+Register::WH_H]));
-    if (this->id)
-        values_to_tm(all_values.clock, &(values[+Register::Year]));
+    values_to_tm(all_values.clock, &(values[+Register::Year]));
     all_values.is_take_ok = values[+Register::TakeOk] != 0;
     all_values.is_take_out = values[+Register::TakeOut] != 0;
     all_values.is_power_on_boot = values[+Register::PowerOnBoot] != 0;
