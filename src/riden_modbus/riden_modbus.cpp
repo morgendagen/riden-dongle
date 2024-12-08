@@ -122,7 +122,7 @@ bool RidenModbus::get_all_values(AllValues &all_values)
     all_values.current_set = value_to_current(values[+Register::CurrentSet]);
     all_values.voltage_out = value_to_voltage(values[+Register::VoltageOut]);
     all_values.current_out = value_to_current(values[+Register::CurrentOut]);
-    all_values.power_out = value_to_power(values[+Register::PowerOut]);
+    all_values.power_out = values_to_power(&(values[+Register::PowerOut_H]));
     all_values.voltage_in = value_to_voltage_in(values[+Register::VoltageIn]);
     all_values.keypad_locked = values[+Register::Keypad] != 0;
     all_values.protection = value_to_protection(values[+Register::Protection]);
@@ -237,7 +237,7 @@ bool RidenModbus::get_current_out(double &current)
 
 bool RidenModbus::get_power_out(double &power)
 {
-    return read_power(Register::PowerOut, power);
+    return read_power(Register::PowerOut_H, power);
 }
 
 bool RidenModbus::is_keypad_locked(bool &keypad)
@@ -624,11 +624,11 @@ bool RidenModbus::write_current(const Register reg, const double current)
 
 bool RidenModbus::read_power(const Register reg, double &power)
 {
-    uint16_t value;
-    if (!read_holding_registers(reg, &value)) {
+    uint16_t values[2];
+    if (!read_holding_registers(reg, values, 2)) {
         return false;
     }
-    power = value_to_power(value);
+    power = values_to_power(values);
     return true;
 }
 
@@ -739,8 +739,9 @@ double RidenModbus::value_to_current(const uint16_t value)
     return double(value) / i_multi;
 }
 
-double RidenModbus::value_to_power(const uint16_t value)
+double RidenModbus::values_to_power(const uint16_t *values)
 {
+    uint32_t value = (values[0] << 16) + values[1];
     return double(value) / p_multi;
 }
 

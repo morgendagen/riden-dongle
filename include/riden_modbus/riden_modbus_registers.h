@@ -24,8 +24,8 @@ enum class Register {
     CurrentSet = 9,
     VoltageOut = 10,
     CurrentOut = 11,
-    AH = 12, // ???
-    PowerOut = 13,
+    PowerOut_H = 12,
+    PowerOut_L = 13,
     VoltageIn = 14,
     Keypad = 15,
     Protection = 16, // OVP_OCP

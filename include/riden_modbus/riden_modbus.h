@@ -306,7 +306,7 @@ class RidenModbus
     double value_to_voltage(const uint16_t value);
     double value_to_voltage_in(const uint16_t value);
     double value_to_current(const uint16_t value);
-    double value_to_power(const uint16_t value);
+    double values_to_power(const uint16_t *values);
     uint16_t voltage_to_value(const double voltage);
     uint16_t current_to_value(const double current);
     double values_to_temperature(const uint16_t *values);
