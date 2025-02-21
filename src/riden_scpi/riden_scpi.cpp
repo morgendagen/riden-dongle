@@ -6,6 +6,11 @@
 #include <riden_modbus/riden_modbus.h>
 #include <riden_scpi/riden_scpi.h>
 
+#ifdef USE_HISLIP
+//#include <hislip_server/server.h>
+#endif
+// TODO: add vxi11 support
+
 #include <Arduino.h>
 #include <ESP8266mDNS.h>
 #include <SCPI_Parser.h>
@@ -125,7 +130,6 @@ size_t SCPI_ResultChoice(scpi_t *context, scpi_choice_def_t *options, int32_t va
 
 size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 {
-    // TODO adapt to hislip 
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     memcpy(&(ridenScpi->write_buffer[ridenScpi->write_buffer_length]), data, len);
@@ -136,13 +140,16 @@ size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 
 scpi_result_t RidenScpi::SCPI_Flush(scpi_t *context)
 {
-    // TODO adapt to hislip 
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+    return ridenScpi->SCPI_FlushRaw();
+}
 
-    if (ridenScpi->client) {
-        ridenScpi->client.write(ridenScpi->write_buffer, ridenScpi->write_buffer_length);
-        ridenScpi->write_buffer_length = 0;
-        ridenScpi->client.flush();
+scpi_result_t RidenScpi::SCPI_FlushRaw(void)
+{
+    if (client) {
+        client.write(write_buffer, write_buffer_length);
+        write_buffer_length = 0;
+        client.flush();
     }
 
     return SCPI_RES_OK;
@@ -650,7 +657,7 @@ bool RidenScpi::begin()
         return true;
     }
 
-    LOG_LN("RidenScpiRaw initializing");
+    LOG_LN("RidenScpi initializing");
 
     String type = ridenModbus.get_type();
     uint32_t serial_number;
@@ -675,11 +682,22 @@ bool RidenScpi::begin()
     tcpServer.setNoDelay(true);
 
     if (MDNS.isRunning()) {
+#if defined(USE_HISLIP)
+        LOG_LN("RidenScpi advertising as hislip.");
+        auto scpi_service = MDNS.addService(NULL, "hislip", "tcp", tcpServer.port());
+        MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
+#elif defined(USE_VXI11)
+        LOG_LN("RidenScpi advertising as vxi-11.");
+        auto scpi_service = MDNS.addService(NULL, "vxi-11", "tcp", tcpServer.port());
+        MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
+#else        
+        LOG_LN("RidenScpi advertising as scpi-raw.");
         auto scpi_service = MDNS.addService(NULL, "scpi-raw", "tcp", tcpServer.port());
         MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
+#endif
     }
 
-    LOG_LN("RidenScpiRaw initialized");
+    LOG_LN("RidenScpi initialized");
 
     initialized = true;
     return true;
@@ -687,10 +705,11 @@ bool RidenScpi::begin()
 
 bool RidenScpi::loop()
 {
-    // TODO adapt to hislip 
+    // TODO This does not work with hislip, where we need 2 connections at the same time
     // Check for new client connecting
     WiFiClient newClient = tcpServer.accept();
     if (newClient) {
+        LOG_LN("RidenScpi: New client.");
         if (!client) {
             newClient.setTimeout(100);
             newClient.setNoDelay(true);
@@ -711,10 +730,42 @@ bool RidenScpi::loop()
                 if (bytes_read > 0) {
                     scpi_context.buffer.position += bytes_read;
                     scpi_context.buffer.length += bytes_read;
+#if defined(USE_HISLIP)
+#error "HiSLIP is not yet supported"
+                    write_buffer_length = 0;
+                    int rv = hs_process_data(scpi_context.buffer.data, scpi_context.buffer.length, write_buffer, &write_buffer_length, sizeof(write_buffer));
+
+                    LOG_F("process return: %d, out buffer size: %u\n", rv, write_buffer_length);
+                    switch(rv) 
+                    {
+                        case 2:
+                            // We have a complete message to be sent immediately
+                            SCPI_FlushRaw();
+                            scpi_context.buffer.position = 0;
+                            scpi_context.buffer.length = 0;
+                            break;
+                        case 1:
+                            // TODO we have a complete payload
+                            scpi_context.buffer.position = 0;
+                            scpi_context.buffer.length = 0;
+                            break;                  
+                        case 0:
+                            // we need more data
+                            break;
+                        default:
+                            scpi_context.buffer.position = 0;
+                            scpi_context.buffer.length = 0;
+                            break;
+                    }
+#elif defined(USE_VXI11)
+                    // TODO implement VXI-11
+#error "VXI-11 is not yet supported"
+#else                   
                     uint8_t last_byte = scpi_context.buffer.data[scpi_context.buffer.position - 1];
                     if (last_byte == '\n') {
                         SCPI_Input(&scpi_context, NULL, 0);
                     }
+#endif
                 }
             } else {
                 // Client is sending more data than we can handle
@@ -725,6 +776,7 @@ bool RidenScpi::loop()
 
     // Stop client which disconnects
     if (client && !client.connected()) {
+        LOG_LN("RidenScpi: disconnect client.");
         client.stop();
     }
 
@@ -758,3 +810,45 @@ void RidenScpi::reset_buffers()
     scpi_context.buffer.length = 0;
     scpi_context.buffer.position = 0;
 }
+
+const char *RidenScpi::get_visa_resource()
+{
+    static char visa_resource[40];
+#if defined(USE_HISLIP)
+    sprintf(visa_resource, "TCPIP::%s::hislip0,%u::INSTR", WiFi.localIP().toString().c_str(), port());
+#elif defined(USE_VXI11)
+    sprintf(visa_resource, "TCPIP::%s::INSTR", WiFi.localIP().toString().c_str());
+#else    
+    sprintf(visa_resource, "TCPIP::%s::%u::SOCKET", WiFi.localIP().toString().c_str(), port());
+#endif    
+    return visa_resource;
+}
+
+
+// ************
+// RAW socket
+// scpi-raw uses a raw TCP connection to send and receive SCPI commands.
+// This FW implementation supports only 1 client.
+// - Discovery is done via mDNS, and the service name is "scpi-raw" (_scpi-raw._tcp).
+// - The VISA string is like: "TCPIP::<ip address>::5025::SOCKET" (using the default port 5025)
+// - The SCPI commands and responses are sent as plain text, delimited by newline characters.
+//
+// HiSLIP 
+// see https://www.ivifoundation.org/downloads/Protocol%20Specifications/IVI-6.1_HiSLIP-2.0-2020-04-23.pdf
+// see https://lxistandard.org/members/Adopted%20Specifications/Latest%20Version%20of%20Standards_/LXI%20Version%201.6/LXI_HiSLIP_Extended_Function_1.3_2022-05-26.pdf
+// is a more modern protocol. It can use a synchronous and/or an asynchronous connection. 
+// - Discovery is done via mDNS, and the service name is "hislip" (_hislip._tcp)
+// - The VISA string is like: "TCPIP::<ip address>::hislip0::INSTR" (using the default port 4880)
+// - The SCPI commands and responses are sent as binary data, with a header and a payload.
+// - It requires 2 connections on the same port (async and sync), even if you only use 1
+// ==> NOT EASY TO DO WITHOUT REWRITING MUCH OF riden_scpi.cpp
+//
+// VXI-11
+// widely supported
+// - Requires 2 socket services: portmap/rpcbind (port 111) and vxi-11 (any port you want)
+// - Discovery is done via portmap when replying to GETPORT VXI-11 Core. This should be on UDP and TCP, but you can get by in TCP.
+// - Secondary discovery is done via mDNS, and the service name is "vxi-11" (_vxi-11._tcp). This however still requires the portmapper.
+// - The VISA string is like: "TCPIP::<ip address>::INSTR"
+// - The SCPI commands and responses are sent as binary data, with a header and a payload.
+// - VXI-11 has separate commands for reading and writing.
+// - TODO: investigate mdns with _vxi-11._tcp

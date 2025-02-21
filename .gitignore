@@ -7,3 +7,4 @@
 __pycache__
 *.pyc
 .vscode/extensions.json
+.vscode/settings.json

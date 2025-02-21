@@ -628,7 +628,5 @@ const char *RidenHttpServer::get_serial_number()
 
 const char *RidenHttpServer::get_visa_resource()
 {
-    static char visa_resource[40];
-    sprintf(visa_resource, "TCPIP::%s::%u::SOCKET", WiFi.localIP().toString().c_str(), scpi.port());
-    return visa_resource;
+    return scpi.get_visa_resource();
 }

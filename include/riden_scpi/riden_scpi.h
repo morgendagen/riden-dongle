@@ -13,7 +13,13 @@
 #define WRITE_BUFFER_LENGTH (256)
 #define SCPI_INPUT_BUFFER_LENGTH 256
 #define SCPI_ERROR_QUEUE_SIZE 17
+#if defined(USE_HISLIP)
+#define DEFAULT_SCPI_PORT 4880
+#elif defined(USE_VXI11)
+#define DEFAULT_SCPI_PORT 1024
+#else
 #define DEFAULT_SCPI_PORT 5025
+#endif
 
 namespace RidenDongle
 {
@@ -29,6 +35,8 @@ class RidenScpi
     uint16_t port();
     std::list<IPAddress> get_connected_clients();
     void disconnect_client(const IPAddress &ip);
+
+    const char *get_visa_resource();
 
   private:
     RidenModbus &ridenModbus;
@@ -60,6 +68,8 @@ class RidenScpi
     // conventions.
     static size_t SCPI_Write(scpi_t *context, const char *data, size_t len);
     static scpi_result_t SCPI_Flush(scpi_t *context);
+    scpi_result_t SCPI_FlushRaw(void);
+  
     static int SCPI_Error(scpi_t *context, int_fast16_t err);
     static scpi_result_t SCPI_Control(scpi_t *context, scpi_ctrl_name_t ctrl, scpi_reg_val_t val);
     static scpi_result_t SCPI_Reset(scpi_t *context);
