@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2024 Peder Toftegaard Olsen
 //
 // SPDX-License-Identifier: MIT
-
+#ifdef MOCK_RIDEN
+#define MODBUS_USE_SOFWARE_SERIAL
+#endif
 #ifdef MODBUS_USE_SOFWARE_SERIAL
 #include <Arduino.h>
 #define LOG(a) Serial.print(a)

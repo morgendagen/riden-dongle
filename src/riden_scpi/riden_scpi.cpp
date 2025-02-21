@@ -11,6 +11,10 @@
 #include <SCPI_Parser.h>
 #include <functional>
 
+#ifdef MOCK_RIDEN
+#define MODBUS_USE_SOFWARE_SERIAL
+#endif
+
 using namespace RidenDongle;
 
 // We only support one client
@@ -121,6 +125,7 @@ size_t SCPI_ResultChoice(scpi_t *context, scpi_choice_def_t *options, int32_t va
 
 size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 {
+    // TODO adapt to hislip 
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     memcpy(&(ridenScpi->write_buffer[ridenScpi->write_buffer_length]), data, len);
@@ -131,6 +136,7 @@ size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 
 scpi_result_t RidenScpi::SCPI_Flush(scpi_t *context)
 {
+    // TODO adapt to hislip 
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
     if (ridenScpi->client) {
@@ -639,11 +645,12 @@ scpi_result_t RidenScpi::SystemBeeperStateQ(scpi_t *context)
 
 bool RidenScpi::begin()
 {
+    // TODO adapt to hislip 
     if (initialized) {
         return true;
     }
 
-    LOG_LN("RidenScpi initializing");
+    LOG_LN("RidenScpiRaw initializing");
 
     String type = ridenModbus.get_type();
     uint32_t serial_number;
@@ -672,7 +679,7 @@ bool RidenScpi::begin()
         MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
     }
 
-    LOG_LN("RidenScpi initialized");
+    LOG_LN("RidenScpiRaw initialized");
 
     initialized = true;
     return true;
@@ -680,6 +687,7 @@ bool RidenScpi::begin()
 
 bool RidenScpi::loop()
 {
+    // TODO adapt to hislip 
     // Check for new client connecting
     WiFiClient newClient = tcpServer.accept();
     if (newClient) {

@@ -22,6 +22,10 @@
 
 #define NTP_SERVER "pool.ntp.org"
 
+#ifdef MOCK_RIDEN
+#define MODBUS_USE_SOFWARE_SERIAL
+#endif
+
 using namespace RidenDongle;
 
 static Ticker led_ticker;
@@ -67,7 +71,7 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
     led_ticker.attach(0.6, tick);
 
-#if MODBUS_USE_SOFWARE_SERIAL
+#ifdef MODBUS_USE_SOFWARE_SERIAL
     Serial.begin(74880);
     delay(1000);
 #endif
@@ -132,6 +136,10 @@ static bool connect_wifi(const char *hostname)
         wifi_connected = wifiManager.autoConnect(hostname);
     }
     if (wifi_connected) {
+
+        LOG_F("WiFi SSID: %s\r\n", WiFi.SSID().c_str());
+        LOG_F("IP: %s\r\n", WiFi.localIP().toString().c_str());
+
         experimental::ESP8266WiFiGratuitous::stationKeepAliveSetIntervalMs();
         if (hostname != nullptr) {
             if (!MDNS.begin(hostname)) {

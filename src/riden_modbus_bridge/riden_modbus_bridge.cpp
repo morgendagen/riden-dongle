@@ -76,6 +76,9 @@ Modbus::ResultCode RidenModbusBridge::modbus_tcp_raw_callback(uint8_t *data, uin
         return Modbus::EX_GENERAL_FAILURE;
     }
     // Wait until no transaction is active
+#ifdef MOCK_RIDEN
+    return Modbus::EX_SUCCESS;
+#else
     while (riden_modbus.modbus.server()) {
         delay(1);
         riden_modbus.modbus.task();
@@ -94,6 +97,7 @@ Modbus::ResultCode RidenModbusBridge::modbus_tcp_raw_callback(uint8_t *data, uin
     ip = source->ipaddr;
     riden_modbus.modbus.onRaw(::modbus_rtu_raw_callback);
     return Modbus::EX_SUCCESS; // Stops ModbusTCP from processing the data
+#endif
 }
 
 /**
@@ -105,6 +109,9 @@ Modbus::ResultCode RidenModbusBridge::modbus_rtu_raw_callback(uint8_t *data, uin
     if (!initialized) {
         return Modbus::EX_GENERAL_FAILURE;
     }
+#ifdef MOCK_RIDEN
+    return Modbus::EX_SUCCESS;
+#else
 
     // Stop intercepting raw data
     riden_modbus.modbus.onRaw(nullptr);
@@ -122,6 +129,7 @@ Modbus::ResultCode RidenModbusBridge::modbus_rtu_raw_callback(uint8_t *data, uin
     slave_id = 0;
     ip = 0;
     return Modbus::EX_SUCCESS; // Stops ModbusRTU from processing the data
+#endif
 }
 
 Modbus::ResultCode modbus_tcp_raw_callback(uint8_t *data, uint8_t len, void *custom_data)
