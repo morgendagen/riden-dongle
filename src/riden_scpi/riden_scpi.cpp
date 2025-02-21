@@ -16,6 +16,49 @@
 #include <SCPI_Parser.h>
 #include <functional>
 
+// ************
+// This file combines a socket server with an SCPI parser.
+//
+// 3 different types of socket servers are supported or are potentially possible:
+// 
+// ** RAW socket
+// The default. Requires no special flags.
+// scpi-raw uses a raw TCP connection to send and receive SCPI commands.
+// This FW implementation supports only 1 client.
+// - Discovery is done via mDNS, and the service name is "scpi-raw" (_scpi-raw._tcp).
+// - The VISA string is like: "TCPIP::<ip address>::5025::SOCKET" (using the default port 5025)
+// - The SCPI commands and responses are sent as plain text, delimited by newline characters.
+// - is not discoverable by pyvisa, and requires a construction like this in Python:
+// if args.port.endswith("::SOCKET"):
+//     inst.read_termination = "\n"
+//     inst.write_termination = "\n"
+//
+//
+// ** VXI-11
+// Requires -D USE_VXI11
+// widely supported
+// - Requires 2 socket services: portmap/rpcbind (port 111) and vxi-11 (any port you want)
+// - Discovery is done via portmap when replying to GETPORT VXI-11 Core. This should be on UDP and TCP, but you can get by in TCP.
+// - Secondary discovery is done via mDNS, and the service name is "vxi-11" (_vxi-11._tcp). This however still requires the portmapper.
+// - The VISA string is like: "TCPIP::<ip address>::INSTR"
+// - The SCPI commands and responses are sent as binary data, with a header and a payload.
+// - VXI-11 has separate commands for reading and writing.
+// - is discoverable by pyvisa, and requires no special construction in Python
+//
+//
+// ** HiSLIP 
+// Requires -D USE_HISLIP
+// see https://www.ivifoundation.org/downloads/Protocol%20Specifications/IVI-6.1_HiSLIP-2.0-2020-04-23.pdf
+// see https://lxistandard.org/members/Adopted%20Specifications/Latest%20Version%20of%20Standards_/LXI%20Version%201.6/LXI_HiSLIP_Extended_Function_1.3_2022-05-26.pdf
+// is a more modern protocol. It can use a synchronous and/or an asynchronous connection. 
+// - Discovery is done via mDNS, and the service name is "hislip" (_hislip._tcp)
+// - The VISA string is like: "TCPIP::<ip address>::hislip0::INSTR" (using the default port 4880)
+// - The SCPI commands and responses are sent as binary data, with a header and a payload.
+// - It requires 2 connections on the same port (async and sync), even if you only use 1
+// - is discoverable by pyvisa, and requires no special construction in Python other than installation of zeroconf
+// ==> THE 2 CONNECTIONS MAKE IT NOT EASY TO DO WITHOUT REWRITING MUCH OF riden_scpi.cpp, AND WORK WAS ABANDONED
+
+
 #ifdef MOCK_RIDEN
 #define MODBUS_USE_SOFWARE_SERIAL
 #endif
@@ -731,7 +774,7 @@ bool RidenScpi::loop()
                     scpi_context.buffer.position += bytes_read;
                     scpi_context.buffer.length += bytes_read;
 #if defined(USE_HISLIP)
-#error "HiSLIP is not yet supported"
+#error "HiSLIP is not yet supported, it requires 2 clients at the same time"
                     write_buffer_length = 0;
                     int rv = hs_process_data(scpi_context.buffer.data, scpi_context.buffer.length, write_buffer, &write_buffer_length, sizeof(write_buffer));
 
@@ -759,7 +802,7 @@ bool RidenScpi::loop()
                     }
 #elif defined(USE_VXI11)
                     // TODO implement VXI-11
-#error "VXI-11 is not yet supported"
+#error "VXI-11 is not yet supported, WIP"
 #else                   
                     uint8_t last_byte = scpi_context.buffer.data[scpi_context.buffer.position - 1];
                     if (last_byte == '\n') {
@@ -825,30 +868,3 @@ const char *RidenScpi::get_visa_resource()
 }
 
 
-// ************
-// RAW socket
-// scpi-raw uses a raw TCP connection to send and receive SCPI commands.
-// This FW implementation supports only 1 client.
-// - Discovery is done via mDNS, and the service name is "scpi-raw" (_scpi-raw._tcp).
-// - The VISA string is like: "TCPIP::<ip address>::5025::SOCKET" (using the default port 5025)
-// - The SCPI commands and responses are sent as plain text, delimited by newline characters.
-//
-// HiSLIP 
-// see https://www.ivifoundation.org/downloads/Protocol%20Specifications/IVI-6.1_HiSLIP-2.0-2020-04-23.pdf
-// see https://lxistandard.org/members/Adopted%20Specifications/Latest%20Version%20of%20Standards_/LXI%20Version%201.6/LXI_HiSLIP_Extended_Function_1.3_2022-05-26.pdf
-// is a more modern protocol. It can use a synchronous and/or an asynchronous connection. 
-// - Discovery is done via mDNS, and the service name is "hislip" (_hislip._tcp)
-// - The VISA string is like: "TCPIP::<ip address>::hislip0::INSTR" (using the default port 4880)
-// - The SCPI commands and responses are sent as binary data, with a header and a payload.
-// - It requires 2 connections on the same port (async and sync), even if you only use 1
-// ==> NOT EASY TO DO WITHOUT REWRITING MUCH OF riden_scpi.cpp
-//
-// VXI-11
-// widely supported
-// - Requires 2 socket services: portmap/rpcbind (port 111) and vxi-11 (any port you want)
-// - Discovery is done via portmap when replying to GETPORT VXI-11 Core. This should be on UDP and TCP, but you can get by in TCP.
-// - Secondary discovery is done via mDNS, and the service name is "vxi-11" (_vxi-11._tcp). This however still requires the portmapper.
-// - The VISA string is like: "TCPIP::<ip address>::INSTR"
-// - The SCPI commands and responses are sent as binary data, with a header and a payload.
-// - VXI-11 has separate commands for reading and writing.
-// - TODO: investigate mdns with _vxi-11._tcp
