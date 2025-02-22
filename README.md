@@ -1,3 +1,5 @@
+# **Work in progress, not ready yet**
+
 # Riden Dongle - A Multi-Protocol Firmware for the Riden WiFi Module
 
 This is an alternative firmware for the Riden WiFi module that
