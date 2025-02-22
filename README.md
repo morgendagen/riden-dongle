@@ -19,31 +19,32 @@ The firmware has been tested with various tools and libraries:
 - SCPI
   - [lxi-tools](https://github.com/lxi-tools/lxi-tools)
   - [EEZ Studio](https://www.envox.eu/studio/studio-introduction/)
-
+  - [PyVISA](https://pyvisa.readthedocs.io/)
 
 ## Features
 
 - Modbus RTU client communicating with Riden power supply firmware.
 - Modbus TCP bridge.
-- SCPI control.
+- SCPI control
+  - via raw socket (VISA string: `TCPIP::<ip address>::5025::SOCKET`)
+  - and via vxi-11 (VISA string: `TCPIP::<ip address>::INSTR`).
 - Web interface to configure the dongle and update firmware.
 - Automatically set power supply clock based on NTP.
 - mDNS advertising.
-- Handles approximately 65 queries/second using Modbus TCP or SCPI
-  (tested using Unisoft v1.41.1k, UART baudrate set at 921600).
-
+- Handles approximately 65 queries/second using Modbus TCP or raw socket SCPI
+  (tested using Unisoft v1.41.1k, UART baudrate set at 9600).
 
 ## Warning
 
 - When flashing the Riden WiFi module you _will_ erase the existing firmware.
 - The firmware provided in this repository comes with no warranty.
 
-
 ## Query Performance
 
 The regular Riden power supply firmware is considerably slower than UniSoft,
 handling less than 10 queries/second.
 
+Raw socket communication is also faster than VXI-11.
 
 ## Hardware Preparations
 
@@ -61,13 +62,11 @@ three additional wires: GPIO0, EN, and 3.3V. In order to ease
 development you may want to terminate the wires in a Dupont header connector
 allowing you to more easily use an ESP01 USB Serial Adapter or similar.
 
-
 ## Download the Firmware from GitHub
 
 Firmware files will be
 [released on GitHub](https://github.com/morgendagen/riden-dongle/releases)
 as part of the repository.
-
 
 ## Compiling the Firmware
 
@@ -77,7 +76,6 @@ firmware.
 
 No configuration is necessary; simply execute `pio run` and wait.
 The firmware is located at `.pio/build/esp12e/firmware.bin`.
-
 
 ## Flashing the Firmware
 
@@ -119,7 +117,6 @@ after a short while, and eventually stop. You should now
 be able to connect to the dongle at
 http://RDxxxx-ssssssss.local.
 
-
 ## Using lxi-tools to Verify Installation
 
 Execute the command
@@ -152,7 +149,6 @@ to set the voltage to 3.3V
 A description of the implemented commands is
 available in [SCPI_COMMANDS.md](SCPI_COMMANDS.md).
 
-
 ## OTA firmware update
 
 In order to update the firmware, you may prefer
@@ -162,7 +158,6 @@ it to a computer.
 
 From the `Configure` page you can upload a
 new firmware binary.
-
 
 ## Limitations
 
@@ -195,7 +190,6 @@ the register matches the language set from the front panel.
 
 It is not possible to control keypad lock.
 
-
 ## Credits
 
 - https://github.com/emelianov/modbus-esp8266
@@ -204,3 +198,4 @@ It is not possible to control keypad lock.
 - https://github.com/ShayBox/Riden
 - https://github.com/tzapu/WiFiManager
 - https://github.com/nayarsystems/posix_tz_db
+- https://github.com/awakephd/espBode
