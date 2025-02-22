@@ -3,6 +3,7 @@
 #include "utilities.h"
 #include "wifi_ext.h"
 #include <ESP8266WiFi.h>
+#include <list>
 
 /*!
   @brief  Interface with the rest of the device.
@@ -39,6 +40,8 @@ class VXI_Server
     uint32_t allocate();
     uint32_t port() { return vxi_port; }
     const char *get_visa_resource();
+    std::list<IPAddress> get_connected_clients();
+    void disconnect_client(const IPAddress &ip);
 
   protected:
     void create_link();

@@ -6,10 +6,6 @@
 #include <riden_modbus/riden_modbus.h>
 #include <riden_scpi/riden_scpi.h>
 
-#ifdef USE_HISLIP
-//#include <hislip_server/server.h>
-#endif
-
 #include <Arduino.h>
 #include <ESP8266mDNS.h>
 #include <SCPI_Parser.h>
@@ -18,7 +14,7 @@
 // ************
 // This file combines a socket server with an SCPI parser.
 //
-// 3 different types of socket servers are supported or are potentially possible:
+// 3 main different types of socket servers are supported or are potentially possible:
 // 
 // ** RAW socket
 // The default. Requires no special flags.
@@ -31,22 +27,22 @@
 // if args.port.endswith("::SOCKET"):
 //     inst.read_termination = "\n"
 //     inst.write_termination = "\n"
+// ==> this is in this file
 //
 //
 // ** VXI-11
-// Requires -D USE_VXI11
 // widely supported
 // - Requires 2 socket services: portmap/rpcbind (port 111) and vxi-11 (any port you want)
 // - Discovery is done via portmap when replying to GETPORT VXI-11 Core. This should be on UDP and TCP, but you can get by in TCP.
-// - Secondary discovery is done via mDNS, and the service name is "vxi-11" (_vxi-11._tcp). This however still requires the portmapper.
+// - Secondary discovery is done via mDNS, and the service name is "vxi-11" (_vxi-11._tcp). That mapper points directly to the vxi server port.
 // - The VISA string is like: "TCPIP::<ip address>::INSTR"
 // - The SCPI commands and responses are sent as binary data, with a header and a payload.
 // - VXI-11 has separate commands for reading and writing.
 // - is discoverable by pyvisa, and requires no special construction in Python
+// ==> this is in a parallel server, see vxi11_server rpc_bind_server
 //
 //
 // ** HiSLIP 
-// Requires -D USE_HISLIP
 // see https://www.ivifoundation.org/downloads/Protocol%20Specifications/IVI-6.1_HiSLIP-2.0-2020-04-23.pdf
 // see https://lxistandard.org/members/Adopted%20Specifications/Latest%20Version%20of%20Standards_/LXI%20Version%201.6/LXI_HiSLIP_Extended_Function_1.3_2022-05-26.pdf
 // is a more modern protocol. It can use a synchronous and/or an asynchronous connection. 
@@ -724,15 +720,9 @@ bool RidenScpi::begin()
     tcpServer.setNoDelay(true);
 
     if (MDNS.isRunning()) {
-#if defined(USE_HISLIP)
-        LOG_LN("RidenScpi advertising as hislip.");
-        auto scpi_service = MDNS.addService(NULL, "hislip", "tcp", tcpServer.port());
-        MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
-#else        
         LOG_LN("RidenScpi advertising as scpi-raw.");
         auto scpi_service = MDNS.addService(NULL, "scpi-raw", "tcp", tcpServer.port());
         MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
-#endif
     }
 
     LOG_LN("RidenScpi initialized");
@@ -768,39 +758,10 @@ bool RidenScpi::loop()
                 if (bytes_read > 0) {
                     scpi_context.buffer.position += bytes_read;
                     scpi_context.buffer.length += bytes_read;
-#if defined(USE_HISLIP)
-#error "HiSLIP is not yet supported, it requires 2 clients at the same time"
-                    write_buffer_length = 0;
-                    int rv = hs_process_data(scpi_context.buffer.data, scpi_context.buffer.length, write_buffer, &write_buffer_length, sizeof(write_buffer));
-
-                    LOG_F("process return: %d, out buffer size: %u\n", rv, write_buffer_length);
-                    switch(rv) 
-                    {
-                        case 2:
-                            // We have a complete message to be sent immediately
-                            SCPI_FlushRaw();
-                            scpi_context.buffer.position = 0;
-                            scpi_context.buffer.length = 0;
-                            break;
-                        case 1:
-                            // TODO we have a complete payload
-                            scpi_context.buffer.position = 0;
-                            scpi_context.buffer.length = 0;
-                            break;                  
-                        case 0:
-                            // we need more data
-                            break;
-                        default:
-                            scpi_context.buffer.position = 0;
-                            scpi_context.buffer.length = 0;
-                            break;
-                    }
-#else                   
                     uint8_t last_byte = scpi_context.buffer.data[scpi_context.buffer.position - 1];
                     if (last_byte == '\n') {
                         SCPI_Input(&scpi_context, NULL, 0);
                     }
-#endif
                 }
             } else {
                 // Client is sending more data than we can handle
@@ -849,11 +810,7 @@ void RidenScpi::reset_buffers()
 const char *RidenScpi::get_visa_resource()
 {
     static char visa_resource[40];
-#if defined(USE_HISLIP)
-    sprintf(visa_resource, "TCPIP::%s::hislip0,%u::INSTR", WiFi.localIP().toString().c_str(), port());
-#else    
     sprintf(visa_resource, "TCPIP::%s::%u::SOCKET", WiFi.localIP().toString().c_str(), port());
-#endif    
     return visa_resource;
 }
 

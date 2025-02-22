@@ -4,6 +4,7 @@
 
 #include <ESP8266mDNS.h>
 #include <SCPI_Parser.h>
+#include <list>
 
 VXI_Server::VXI_Server(SCPI_handler &scpi_handler)
     : vxi_port(rpc::VXI_PORT_START, rpc::VXI_PORT_END),
@@ -207,4 +208,20 @@ const char *VXI_Server::get_visa_resource()
     static char visa_resource[40];
     sprintf(visa_resource, "TCPIP::%s::INSTR", WiFi.localIP().toString().c_str());
     return visa_resource;
+}
+
+std::list<IPAddress> VXI_Server::get_connected_clients()
+{
+    std::list<IPAddress> connected_clients;
+    if (client && client.connected()) {
+        connected_clients.push_back(client.remoteIP());
+    }
+    return connected_clients;
+}
+
+void VXI_Server::disconnect_client(const IPAddress &ip)
+{
+    if (client && client.connected() && client.remoteIP() == ip) {
+        client.stop();
+    }
 }

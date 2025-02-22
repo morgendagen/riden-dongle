@@ -41,10 +41,10 @@ static bool connected = false;
 static RidenModbus riden_modbus;
 static RidenScpi riden_scpi(riden_modbus);
 static RidenModbusBridge modbus_bridge(riden_modbus);
-static RidenHttpServer http_server(riden_modbus, riden_scpi, modbus_bridge);
 static SCPI_handler scpi_handler;
-static VXI_Server vxi_server(scpi_handler);          ///< The VXI_Server
+static VXI_Server vxi_server(scpi_handler);
 static RPC_Bind_Server rpc_bind_server(vxi_server);  ///< The RPC_Bind_Server for the vxi server
+static RidenHttpServer http_server(riden_modbus, riden_scpi, modbus_bridge, vxi_server);
 
 /**
  * Invoked by led_ticker to flash the LED.

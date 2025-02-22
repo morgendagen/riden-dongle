@@ -13,11 +13,7 @@
 #define WRITE_BUFFER_LENGTH (256)
 #define SCPI_INPUT_BUFFER_LENGTH 256
 #define SCPI_ERROR_QUEUE_SIZE 17
-#if defined(USE_HISLIP)
-#define DEFAULT_SCPI_PORT 4880
-#else
 #define DEFAULT_SCPI_PORT 5025
-#endif
 
 namespace RidenDongle
 {
