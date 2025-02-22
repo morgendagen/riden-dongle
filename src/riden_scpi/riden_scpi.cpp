@@ -9,7 +9,6 @@
 #ifdef USE_HISLIP
 //#include <hislip_server/server.h>
 #endif
-// TODO: add vxi11 support
 
 #include <Arduino.h>
 #include <ESP8266mDNS.h>
@@ -729,10 +728,6 @@ bool RidenScpi::begin()
         LOG_LN("RidenScpi advertising as hislip.");
         auto scpi_service = MDNS.addService(NULL, "hislip", "tcp", tcpServer.port());
         MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
-#elif defined(USE_VXI11)
-        LOG_LN("RidenScpi advertising as vxi-11.");
-        auto scpi_service = MDNS.addService(NULL, "vxi-11", "tcp", tcpServer.port());
-        MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
 #else        
         LOG_LN("RidenScpi advertising as scpi-raw.");
         auto scpi_service = MDNS.addService(NULL, "scpi-raw", "tcp", tcpServer.port());
@@ -800,9 +795,6 @@ bool RidenScpi::loop()
                             scpi_context.buffer.length = 0;
                             break;
                     }
-#elif defined(USE_VXI11)
-                    // TODO implement VXI-11
-#error "VXI-11 is not yet supported, WIP"
 #else                   
                     uint8_t last_byte = scpi_context.buffer.data[scpi_context.buffer.position - 1];
                     if (last_byte == '\n') {
@@ -859,8 +851,6 @@ const char *RidenScpi::get_visa_resource()
     static char visa_resource[40];
 #if defined(USE_HISLIP)
     sprintf(visa_resource, "TCPIP::%s::hislip0,%u::INSTR", WiFi.localIP().toString().c_str(), port());
-#elif defined(USE_VXI11)
-    sprintf(visa_resource, "TCPIP::%s::INSTR", WiFi.localIP().toString().c_str());
 #else    
     sprintf(visa_resource, "TCPIP::%s::%u::SOCKET", WiFi.localIP().toString().c_str(), port());
 #endif    

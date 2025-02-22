@@ -8,6 +8,8 @@
 #include <riden_modbus/riden_modbus.h>
 #include <riden_modbus_bridge/riden_modbus_bridge.h>
 #include <riden_scpi/riden_scpi.h>
+#include <vxi11_server/rpc_bind_server.h>
+#include <vxi11_server/vxi_server.h>
 
 #include <Arduino.h>
 #include <ArduinoOTA.h>
@@ -40,6 +42,9 @@ static RidenModbus riden_modbus;
 static RidenScpi riden_scpi(riden_modbus);
 static RidenModbusBridge modbus_bridge(riden_modbus);
 static RidenHttpServer http_server(riden_modbus, riden_scpi, modbus_bridge);
+static SCPI_handler scpi_handler;
+static VXI_Server vxi_server(scpi_handler);          ///< The VXI_Server
+static RPC_Bind_Server rpc_bind_server(vxi_server);  ///< The RPC_Bind_Server for the vxi server
 
 /**
  * Invoked by led_ticker to flash the LED.
@@ -98,6 +103,8 @@ void setup()
 
         riden_scpi.begin();
         modbus_bridge.begin();
+        vxi_server.begin();
+        rpc_bind_server.begin();
 
         // turn off led
         led_ticker.detach();
@@ -188,6 +195,8 @@ void loop()
         riden_modbus.loop();
         riden_scpi.loop();
         modbus_bridge.loop();
+        rpc_bind_server.loop();
+        vxi_server.loop();
     }
     http_server.loop();
     ArduinoOTA.handle();
