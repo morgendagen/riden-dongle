@@ -3,17 +3,20 @@
 #include "utilities.h"
 #include "wifi_ext.h"
 #include <ESP8266WiFi.h>
+#include <SCPI_Parser.h>
 #include <list>
 
 /*!
   @brief  Interface with the rest of the device.
 */
-class SCPI_handler
+class SCPI_handler_interface
 {
-  // TODO: fill in
   public:
-    SCPI_handler() {};
-    ~SCPI_handler() {};
+    virtual ~SCPI_handler_interface() {} 
+    virtual void write(const char *data, size_t len) = 0;
+    virtual scpi_result_t read(char *data, size_t *len, size_t max_len) = 0;
+    virtual void claim_control() = 0;
+    virtual void release_control() = 0;
 };
 
 /*!
@@ -30,7 +33,7 @@ class VXI_Server
     };
 
   public:
-    VXI_Server(SCPI_handler &scpi_handler);
+    VXI_Server(SCPI_handler_interface &scpi_handler);
     ~VXI_Server();
 
     void loop();
@@ -56,6 +59,6 @@ class VXI_Server
     Read_Type read_type;
     uint32_t rw_channel;
     cyclic_uint32_t vxi_port;
-    SCPI_handler &scpi_handler;
+    SCPI_handler_interface &scpi_handler;
 };
 

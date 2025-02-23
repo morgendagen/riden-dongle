@@ -169,28 +169,29 @@ size_t SCPI_ResultChoice(scpi_t *context, scpi_choice_def_t *options, int32_t va
 size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 {
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
-
+    LOG_F("SCPI_Write: writing \"%.*s\"\n", (int)len, data);
+    ridenScpi->external_output_ready = false; // don't send half baked data to the client
     memcpy(&(ridenScpi->write_buffer[ridenScpi->write_buffer_length]), data, len);
     ridenScpi->write_buffer_length += len;
-
+    
     return len;
 }
 
 scpi_result_t RidenScpi::SCPI_Flush(scpi_t *context)
 {
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
-    LOG_F("SCPI_Flush: sending \"%.*s\"\n", ridenScpi->write_buffer_length, ridenScpi->write_buffer);
-    return ridenScpi->SCPI_FlushRaw();
-}
 
-scpi_result_t RidenScpi::SCPI_FlushRaw(void)
-{
-    if (client) {
-        client.write(write_buffer, write_buffer_length);
-        write_buffer_length = 0;
-        client.flush();
+    if (ridenScpi->external_control) {
+        // do not write to the client, let the read function fetch the data
+        ridenScpi->external_output_ready = true;
+        return SCPI_RES_OK;
     }
-
+    LOG_F("SCPI_Flush: sending \"%.*s\"\n", (int)ridenScpi->write_buffer_length, ridenScpi->write_buffer);
+    if (ridenScpi->client) {
+        ridenScpi->client.write(ridenScpi->write_buffer, ridenScpi->write_buffer_length);
+        ridenScpi->write_buffer_length = 0;
+        ridenScpi->client.flush();
+    }
     return SCPI_RES_OK;
 }
 
@@ -691,9 +692,57 @@ scpi_result_t RidenScpi::SystemBeeperStateQ(scpi_t *context)
     }
 }
 
+/**
+ * @brief Write data to the parser and the device.
+ * It overwrites the data in the buffer from the raw socket server.
+ * 
+ * @param data data to be sent
+ * @param len length of data
+ */
+void RidenScpi::write(const char *data, size_t len) 
+{
+    if ((len == 0) || (data == NULL)) return;
+    // insert the data into the buffer.
+    if (len > SCPI_INPUT_BUFFER_LENGTH) {
+        LOG_F("ERROR: RidenScpi buffer overflow. Ignoring data.\n");
+        return;
+    }
+    memcpy(scpi_context.buffer.data, data, len);
+    scpi_context.buffer.position = len;
+    scpi_context.buffer.length = len;
+    external_control = true; // just to be sure
+    SCPI_Input(&scpi_context, NULL, 0);
+}
+
+/**
+ * @brief Read data from the parser and the device, this is the reaction to "write()"
+ * 
+ * @param data buffer to copy the data into
+ * @param len length of data
+ * @param max_len maximum length of data
+ * @return scpi_result_t last error code
+ */
+scpi_result_t RidenScpi::read(char *data, size_t *len, size_t max_len){
+    if (!external_control || len == NULL || data == NULL) {
+        return SCPI_RES_ERR;
+    }
+    *len = 0;
+    if (write_buffer_length > max_len) {
+        LOG_F("ERROR: RidenScpi output buffer overflow. Flushing the data.\n");
+        return SCPI_RES_ERR;
+    }
+    if (!external_output_ready) {
+
+        return SCPI_RES_ERR;
+    }
+    memcpy(data, write_buffer, write_buffer_length);
+    *len = write_buffer_length;
+    write_buffer_length = 0;
+    return SCPI_RES_OK;
+}
+
 bool RidenScpi::begin()
 {
-    // TODO adapt to hislip 
     if (initialized) {
         return true;
     }
@@ -736,6 +785,15 @@ bool RidenScpi::begin()
 
 bool RidenScpi::loop()
 {
+    if (external_control) {
+        // skip this loop if I'm under external control
+        if (client) {
+            LOG_LN("RidenScpi: disconnect client because I am under external control.");
+            client.stop();
+        }
+        return true;
+    }
+
     // Check for new client connecting
     WiFiClient newClient = tcpServer.accept();
     if (newClient) {
@@ -764,7 +822,8 @@ bool RidenScpi::loop()
                     scpi_context.buffer.length = 0;
                     client.stop();
                     break;
-                }                
+                }
+                // insert the character into the buffer.
                 scpi_context.buffer.data[scpi_context.buffer.position] = buffer[0];
                 scpi_context.buffer.position++;
                 scpi_context.buffer.length++;

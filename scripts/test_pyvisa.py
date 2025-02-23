@@ -47,7 +47,7 @@ def test_device(port: str, repeat_query: int, timeout: int):
         inst.write_termination = "\n"
         # write_delay_ms = 150  # for socket connections, a delay is needed between writes sometimes
     msgs = ["*IDN?"]
-    msgs = ["VOLT 1", "VOLT 2", "VOLT 3", "VOLT 4", "VOLT 5", "VOLT 6", "VOLT 7"]
+    msgs = ["VOLT 1", "VOLT?", "VOLT 2", "VOLT?", "VOLT 3", "VOLT?"]
     if repeat_query > 0:
         print(f"Repeating query tests for {repeat_query} seconds...")
         start = time.time()

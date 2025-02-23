@@ -6,7 +6,7 @@
 #include <SCPI_Parser.h>
 #include <list>
 
-VXI_Server::VXI_Server(SCPI_handler &scpi_handler)
+VXI_Server::VXI_Server(SCPI_handler_interface &scpi_handler)
     : vxi_port(rpc::VXI_PORT_START, rpc::VXI_PORT_END),
     scpi_handler(scpi_handler)
 {
@@ -153,6 +153,7 @@ void VXI_Server::create_link()
     create_response->abort_port = 0;
     create_response->max_receive_size = VXI_READ_SIZE - 4;
     send_vxi_packet(client, sizeof(create_response_packet));
+    scpi_handler.claim_control();    
 }
 
 void VXI_Server::destroy_link()
@@ -161,20 +162,24 @@ void VXI_Server::destroy_link()
     destroy_response->rpc_status = rpc::SUCCESS;
     destroy_response->error = rpc::NO_ERROR;
     send_vxi_packet(client, sizeof(destroy_response_packet));
+    scpi_handler.release_control();
 }
 
 void VXI_Server::read()
 {
     // This is where we read from the device
-    // FIXME: Fill this in
-    char readbuffer[] = "DUMMY";
-    uint32_t len = strlen(readbuffer);
-    LOG_F("READ DATA on port %u; data sent = %s\n", (uint32_t)vxi_port, readbuffer);
+    char outbuffer[256];
+    size_t len = 0;
+    scpi_result_t rv = scpi_handler.read(outbuffer, &len, sizeof(outbuffer));
+
+    // FIXME handle error codes, maybe even pick up errors from the SCPI Parser
+
+    LOG_F("READ DATA on port %u; data sent = %.*s\n", (uint32_t)vxi_port, (int)len, outbuffer);
     read_response->rpc_status = rpc::SUCCESS;
     read_response->error = rpc::NO_ERROR;
     read_response->reason = rpc::END;
-    read_response->data_len = len;
-    strcpy(read_response->data, readbuffer);
+    read_response->data_len = (uint32_t)len;
+    strcpy(read_response->data, outbuffer);
 
     send_vxi_packet(client, sizeof(read_response_packet) + len);
 }
@@ -184,28 +189,20 @@ void VXI_Server::write()
     // This is where we write to the device
     uint32_t wlen = write_request->data_len;
     uint32_t len = wlen;
-    while (len > 0 && write_request->data[len - 1] == '\n') {
+    // right trim. SCPI parser doesn't like \r\n
+    while (len > 0 && isspace(write_request->data[len - 1])) {
         len--;
     }
     write_request->data[len] = 0;
-    LOG_F("WRITE DATA on port %u = \"%s\"\n", (uint32_t)vxi_port, write_request->data);
+    LOG_F("WRITE DATA on port %u = \"%.*s\"\n", (uint32_t)vxi_port, (int)len, write_request->data);
     /*  Parse and respond to the SCPI command  */
-    parse_scpi(write_request->data); // FIXME: Fill this in
+    scpi_handler.write(write_request->data, len);
+
     /*  Generate the response  */
     write_response->rpc_status = rpc::SUCCESS;
     write_response->error = rpc::NO_ERROR;
-    write_response->size = wlen;
+    write_response->size = wlen; // with the original length
     send_vxi_packet(client, sizeof(write_response_packet));
-}
-
-/**
- * @brief This method parses the SCPI commands and issues the appropriate commands to the device.
- * 
- * @param buffer null terminated string to send to the device
- */
-void VXI_Server::parse_scpi(char *buffer)
-{
-
 }
 
 const char *VXI_Server::get_visa_resource()

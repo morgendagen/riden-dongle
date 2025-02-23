@@ -10,6 +10,7 @@
 #include <riden_scpi/riden_scpi.h>
 #include <vxi11_server/rpc_bind_server.h>
 #include <vxi11_server/vxi_server.h>
+#include <scpi_bridge/scpi_bridge.h>
 
 #include <Arduino.h>
 #include <ArduinoOTA.h>
@@ -38,13 +39,13 @@ static bool did_update_time = false;
 
 static bool connected = false;
 
-static RidenModbus riden_modbus;
-static RidenScpi riden_scpi(riden_modbus);
-static RidenModbusBridge modbus_bridge(riden_modbus);
-static SCPI_handler scpi_handler;
-static VXI_Server vxi_server(scpi_handler);
-static RPC_Bind_Server rpc_bind_server(vxi_server);  ///< The RPC_Bind_Server for the vxi server
-static RidenHttpServer http_server(riden_modbus, riden_scpi, modbus_bridge, vxi_server);
+static RidenModbus riden_modbus;                      ///< The modbus server
+static RidenScpi riden_scpi(riden_modbus);            ///< The raw socket server + the SCPI command handler
+static RidenModbusBridge modbus_bridge(riden_modbus); ///< The modbus TCP server
+static SCPI_handler scpi_handler(riden_scpi);         ///< The bridge from the vxi server to the SCPI command handler
+static VXI_Server vxi_server(scpi_handler);           ///< The vxi server
+static RPC_Bind_Server rpc_bind_server(vxi_server);   ///< The RPC_Bind_Server for the vxi server
+static RidenHttpServer http_server(riden_modbus, riden_scpi, modbus_bridge, vxi_server); ///< The web server
 
 /**
  * Invoked by led_ticker to flash the LED.
