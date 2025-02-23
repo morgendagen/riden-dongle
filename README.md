@@ -1,4 +1,11 @@
-# **Work in progress, not ready yet**
+# **Work in progress, not fully ready yet**
+
+Status: VXI-11 and raw socket servers are functional and seem robust.
+
+TODO:
+
+* error feedback in VXI-11
+
 
 # Riden Dongle - A Multi-Protocol Firmware for the Riden WiFi Module
 
@@ -46,14 +53,13 @@ The firmware has been tested with various tools and libraries:
 The regular Riden power supply firmware is considerably slower than UniSoft,
 handling less than 10 queries/second.
 
-Raw socket SCPI communication is about 2ms per query faster than VXI-11.
-On write operations, there is no speed difference between the 2 styles of communication.
-
 ## VISA communication directives
 
 ### VXI-11
 
 The VXI-11 channel (`TCPIP::<ip address>::INSTR`) is auto discoverable via mDNS, TCP and UDP, making it highly compatible with most tools.
+
+When you use the VXI server, the raw socket server is disabled.
 
 ### Raw sockets
 
@@ -66,7 +72,7 @@ When using the raw sockets (`TCPIP::<ip address>::5025::SOCKET`), you must, like
   inst.write_termination = "\n"
 ```
 
-Also, be aware that when writing many commands to the device, the network and the device will queue them up. As a result, the delay between the moment your client issues a command, and the moment the device handles the command, can be significant. If you do not want that, insert a sleep of more than 150ms after each write command, forcing the network to send 1 command at a time.
+Also, be aware that when writing many commands to the device, the network layers and the device will queue them up. As a result, there can be a significant delay between the moment your client issues a command, and the moment the device handles the command. If you do not want that, insert a sleep of more than 150ms after each write command, forcing the network to send 1 command at a time.
 
 VXI-11 does not have this problem, since every command requires an ACK.
 

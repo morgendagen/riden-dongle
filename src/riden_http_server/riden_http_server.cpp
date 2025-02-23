@@ -14,7 +14,7 @@
 
 using namespace RidenDongle;
 
-static const String scpi_protocol = "SCPI";
+static const String scpi_protocol = "SCPI RAW";
 static const String modbustcp_protocol = "Modbus TCP";
 static const String vxi11_protocol = "VXI-11";
 static const std::list<uint32_t> uart_baudrates = {
@@ -496,8 +496,8 @@ void RidenHttpServer::send_services()
     send_info_row("Modbus TCP Port", String(bridge.port(), 10));
     send_info_row("VXI-11 Port", String(vxi_server.port(), 10));
     send_info_row("SCPI RAW Port", String(scpi.port(), 10));
-    send_info_row("VISA Resource Address 1", vxi_server.get_visa_resource());
-    send_info_row("VISA Resource Address 2", scpi.get_visa_resource());
+    send_info_row("VISA Resource Address VXI-11", vxi_server.get_visa_resource());
+    send_info_row("VISA Resource Address RAW", scpi.get_visa_resource());
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
