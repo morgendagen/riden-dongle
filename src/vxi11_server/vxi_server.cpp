@@ -33,6 +33,11 @@ void VXI_Server::begin(bool bNext)
 {
     if (bNext) {
         client.stop();
+
+        if (vxi_port.is_noncyclic()) return; // no need to change port, and the rest is already done
+
+        // counter is cyclic, so we need to stop the server and rotate to the next port
+        LOG_F("Stop Listening for VXI commands on TCP port %u\n", (uint32_t)vxi_port);
         tcp_server.stop();
 
         /*  Note that vxi_port is not an ordinary uint32_t. It is
@@ -48,7 +53,7 @@ void VXI_Server::begin(bool bNext)
     tcp_server.begin(vxi_port);
 
     LOG_F("Listening for VXI commands on TCP port %u\n", (uint32_t)vxi_port);
-    if (rpc::VXI_PORT_START == rpc::VXI_PORT_END) {
+    if (vxi_port.is_noncyclic()) {
         if (MDNS.isRunning()) {
             LOG_LN("VXI_Server advertising as vxi-11.");
             auto scpi_service = MDNS.addService(NULL, "vxi-11", "tcp", (uint32_t)vxi_port);

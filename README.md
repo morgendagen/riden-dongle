@@ -46,7 +46,32 @@ The firmware has been tested with various tools and libraries:
 The regular Riden power supply firmware is considerably slower than UniSoft,
 handling less than 10 queries/second.
 
-Raw socket communication is also faster than VXI-11.
+Raw socket SCPI communication is about 2ms per query faster than VXI-11.
+On write operations, there is no speed difference between the 2 styles of communication.
+
+## VISA communication directives
+
+### VXI-11
+
+Only the VXI-11 channel (`TCPIP::<ip address>::INSTR`) will be auto discovered as of now.
+
+### Raw sockets
+
+When using the raw sockets (`TCPIP::<ip address>::5025::SOCKET`), you must, like with most other raw socket devices, use
+
+```python
+  inst.read_termination = "\n"
+  inst.write_termination = "\n"
+```
+
+Also, when writing to the device (normally done with `.write(message)`), follow that operation with one of the following:
+
+- `.read()` (but then, you could probably have used `.query()` instead)
+- sleep of more than 150ms
+
+... as your client device may put multiple commands in one network packet, leading to overflows, and silent lockup of the socket server in the dongle. You may need to reboot the dongle (can then still be done via the web interface) to restore operation.
+
+This type of problem does not exist with VXI-11.
 
 ## Hardware Preparations
 

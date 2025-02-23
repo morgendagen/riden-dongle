@@ -70,6 +70,11 @@ class cyclic_uint32_t
     }
 
     /*!
+      @return True if the counter is not cyclic in reality.
+    */
+    bool is_noncyclic() { return m_start == m_end; }
+
+    /*!
       @brief  Cycle to the previous value.
 
       If the current value is at the start of the range, the
