@@ -1,12 +1,3 @@
-# **Work in progress, not fully ready yet**
-
-Status: VXI-11 and raw socket servers are functional and seem robust.
-
-TODO:
-
-* error feedback in VXI-11
-
-
 # Riden Dongle - A Multi-Protocol Firmware for the Riden WiFi Module
 
 This is an alternative firmware for the Riden WiFi module that
@@ -15,7 +6,7 @@ provides Modbus TCP and SCPI support as well as a web interface.
 The firmware has been tested with various tools and libraries:
 
 - Riden Hardware
-  - RD6006
+  - RD6006 and RD6012
 - Riden Firmware
   - Riden v1.28
   - Riden v1.41
@@ -55,11 +46,13 @@ handling less than 10 queries/second.
 
 ## VISA communication directives
 
+An example test program can be found under [/scripts/test_pyvisa.py](/scripts/test_pyvisa.py)
+
 ### VXI-11
 
 The VXI-11 channel (`TCPIP::<ip address>::INSTR`) is auto discoverable via mDNS, TCP and UDP, making it highly compatible with most tools.
 
-When you use the VXI server, the raw socket server is disabled.
+While you use the VXI server, the raw socket server is disabled.
 
 ### Raw sockets
 
@@ -72,7 +65,7 @@ When using the raw sockets (`TCPIP::<ip address>::5025::SOCKET`), you must, like
   inst.write_termination = "\n"
 ```
 
-Also, be aware that when writing many commands to the device, the network layers and the device will queue them up. As a result, there can be a significant delay between the moment your client issues a command, and the moment the device handles the command. If you do not want that, insert a sleep of more than 150ms after each write command, forcing the network to send 1 command at a time.
+Also, be aware that when writing many commands to the device, the network layers and the device will queue them up. As a result, there can be a significant delay between the moment your client issues a command, and the moment the device handles the command. If you do not want that, insert a sleep of more than 150ms after each write command, forcing the network to send 1 command at a time. (the minimum delay depends on the configuration of your platform)
 
 VXI-11 does not have this problem, since every command requires an ACK.
 
