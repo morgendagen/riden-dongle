@@ -179,6 +179,7 @@ size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 scpi_result_t RidenScpi::SCPI_Flush(scpi_t *context)
 {
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
+    LOG_F("SCPI_Flush: sending \"%.*s\"\n", ridenScpi->write_buffer_length, ridenScpi->write_buffer);
     return ridenScpi->SCPI_FlushRaw();
 }
 
@@ -448,6 +449,8 @@ scpi_result_t RidenScpi::SourceVoltage(scpi_t *context)
 
     scpi_choice_def_t special;
     scpi_number_t value;
+
+    LOG_F("SourceVoltage command\n");
 
     if (!SCPI_ParamNumber(context, &special, &value, TRUE)) {
         return SCPI_RES_ERR;
@@ -733,7 +736,6 @@ bool RidenScpi::begin()
 
 bool RidenScpi::loop()
 {
-    // TODO This does not work with hislip, where we need 2 connections at the same time
     // Check for new client connecting
     WiFiClient newClient = tcpServer.accept();
     if (newClient) {
@@ -752,20 +754,25 @@ bool RidenScpi::loop()
     if (client) {
         int bytes_available = client.available();
         if (bytes_available > 0) {
-            int space_left = SCPI_INPUT_BUFFER_LENGTH - scpi_context.buffer.position;
-            if (space_left >= bytes_available) {
-                int bytes_read = client.readBytes(&(scpi_context.buffer.data[scpi_context.buffer.position]), bytes_available);
-                if (bytes_read > 0) {
-                    scpi_context.buffer.position += bytes_read;
-                    scpi_context.buffer.length += bytes_read;
-                    uint8_t last_byte = scpi_context.buffer.data[scpi_context.buffer.position - 1];
-                    if (last_byte == '\n') {
-                        SCPI_Input(&scpi_context, NULL, 0);
-                    }
+            // Now read until I find a newline. There may be way more data in the buffer than 1 command.
+            char buffer[1];
+            while (client.readBytes(buffer, 1) == 1) {
+                if (scpi_context.buffer.position >= SCPI_INPUT_BUFFER_LENGTH) {
+                    // Client is sending more data than we can handle
+                    LOG_F("ERROR: RidenScpi buffer overflow. Flushing data and killing connection.\n");
+                    scpi_context.buffer.position = 0;
+                    scpi_context.buffer.length = 0;
+                    client.stop();
+                    break;
+                }                
+                scpi_context.buffer.data[scpi_context.buffer.position] = buffer[0];
+                scpi_context.buffer.position++;
+                scpi_context.buffer.length++;
+                if (buffer[0] == '\n') {
+                    LOG_F("RidenScpi: received %d bytes for handling\n", scpi_context.buffer.position);
+                    SCPI_Input(&scpi_context, NULL, 0);
+                    break;
                 }
-            } else {
-                // Client is sending more data than we can handle
-                client.stop();
             }
         }
     }

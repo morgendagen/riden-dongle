@@ -53,9 +53,11 @@ On write operations, there is no speed difference between the 2 styles of commun
 
 ### VXI-11
 
-Only the VXI-11 channel (`TCPIP::<ip address>::INSTR`) will be auto discovered as of now.
+The VXI-11 channel (`TCPIP::<ip address>::INSTR`) is auto discoverable via mDNS, TCP and UDP, making it highly compatible with most tools.
 
 ### Raw sockets
+
+Raw socket capability cannot be auto discovered by pyvisa as of now. It can be discovered by lxi tools (see below)
 
 When using the raw sockets (`TCPIP::<ip address>::5025::SOCKET`), you must, like with most other raw socket devices, use
 
@@ -64,14 +66,9 @@ When using the raw sockets (`TCPIP::<ip address>::5025::SOCKET`), you must, like
   inst.write_termination = "\n"
 ```
 
-Also, when writing to the device (normally done with `.write(message)`), follow that operation with one of the following:
+Also, be aware that when writing many commands to the device, the network and the device will queue them up. As a result, the delay between the moment your client issues a command, and the moment the device handles the command, can be significant. If you do not want that, insert a sleep of more than 150ms after each write command, forcing the network to send 1 command at a time.
 
-- `.read()` (but then, you could probably have used `.query()` instead)
-- sleep of more than 150ms
-
-... as your client device may put multiple commands in one network packet, leading to overflows, and silent lockup of the socket server in the dongle. You may need to reboot the dongle (can then still be done via the web interface) to restore operation.
-
-This type of problem does not exist with VXI-11.
+VXI-11 does not have this problem, since every command requires an ACK.
 
 ## Hardware Preparations
 

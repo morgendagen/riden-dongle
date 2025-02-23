@@ -4,7 +4,7 @@ import time
 import datetime
 
 
-def test_query(inst, m: str):
+def test_query(inst, m: str, write_delay_ms: int = 0):
     start_query = datetime.datetime.now()
     if m.endswith("?"):
         print(f"Query \"{m}\" reply: ", end='')
@@ -24,8 +24,8 @@ def test_query(inst, m: str):
             return False                        
     delta_time = datetime.datetime.now() - start_query
     print(f", taking {delta_time.total_seconds() * 1000:.1f} ms.")
-    if not m.endswith("?"):
-        time.sleep(0.15)
+    if not m.endswith("?") and write_delay_ms > 0:
+        time.sleep(write_delay_ms / 1000)
     
     return True
 
@@ -41,9 +41,11 @@ def test_device(port: str, repeat_query: int, timeout: int):
         return False
     delta_time = datetime.datetime.now() - start_connect
     print(f" succeeded, taking {delta_time.total_seconds() * 1000:.1f} ms.")
+    write_delay_ms = 0
     if port.endswith("::SOCKET"):
         inst.read_termination = "\n"
         inst.write_termination = "\n"
+        # write_delay_ms = 150  # for socket connections, a delay is needed between writes sometimes
     msgs = ["*IDN?"]
     msgs = ["VOLT 1", "VOLT 2", "VOLT 3", "VOLT 4", "VOLT 5", "VOLT 6", "VOLT 7"]
     if repeat_query > 0:
@@ -51,12 +53,12 @@ def test_device(port: str, repeat_query: int, timeout: int):
         start = time.time()
         while time.time() - start < repeat_query:
             for m in msgs:
-                if not test_query(inst, m):
+                if not test_query(inst, m, write_delay_ms):
                     inst.close()
                     return False
     else:
         for m in msgs:
-            if not test_query(inst, m):
+            if not test_query(inst, m, write_delay_ms):
                 inst.close()
                 return False
     return True
