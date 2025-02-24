@@ -54,6 +54,8 @@ The VXI-11 channel (`TCPIP::<ip address>::INSTR`) is auto discoverable via mDNS,
 
 While you use the VXI server, the raw socket server is disabled.
 
+Note that when you use the web interface to kill a VXI-11 client, it will not properly inform the client. It will just kill the connection.
+
 ### Raw sockets
 
 Raw socket capability cannot be auto discovered by pyvisa as of now. It can be discovered by lxi tools (see below)
