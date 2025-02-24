@@ -13,9 +13,13 @@ class SCPI_handler_interface
 {
   public:
     virtual ~SCPI_handler_interface() {} 
+    // write a command to the SCPI parser
     virtual void write(const char *data, size_t len) = 0;
+    // read a response from the SCPI parser
     virtual scpi_result_t read(char *data, size_t *len, size_t max_len) = 0;
-    virtual void claim_control() = 0;
+    // claim_control() should return true if the SCPI parser is ready to accept a command
+    virtual bool claim_control() = 0;
+    // release_control() should be called when the SCPI parser is no longer needed
     virtual void release_control() = 0;
 };
 
@@ -34,6 +38,7 @@ class VXI_Server
 
   public:
     VXI_Server(SCPI_handler_interface &scpi_handler);
+    VXI_Server(SCPI_handler_interface &scpi_handler, uint32_t port_min, uint32_t port_max);
     ~VXI_Server();
 
     void loop();

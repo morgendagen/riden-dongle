@@ -15,6 +15,15 @@ VXI_Server::VXI_Server(SCPI_handler_interface &scpi_handler)
         we wait until the begin() command.  */
 }
 
+VXI_Server::VXI_Server(SCPI_handler_interface &scpi_handler, uint32_t port_min, uint32_t port_max)
+    : vxi_port(port_min, port_max),
+    scpi_handler(scpi_handler)
+{
+    /*  We do not start the tcp_server port here, because
+        WiFi has likely not yet been initialized. Instead,
+        we wait until the begin() command.  */
+}
+
 VXI_Server::~VXI_Server()
 {
 }
@@ -144,6 +153,16 @@ void VXI_Server::create_link()
         be null-terminated, but just in case, we will put in
         the terminator.  */
 
+    if (!scpi_handler.claim_control()) {
+        create_response->rpc_status = rpc::SUCCESS;
+        create_response->error = rpc::OUT_OF_RESOURCES; // not DEVICE_LOCKED because that would require lock_timeout etc
+        create_response->link_id = 0;
+        create_response->abort_port = 0;
+        create_response->max_receive_size = 0;
+        send_vxi_packet(client, sizeof(create_response_packet));
+        return;
+    }
+
     create_request->data[create_request->data_len] = 0;
     LOG_F("CREATE LINK request from \"%s\" on port %u\n", create_request->data, (uint32_t)vxi_port);
     /*  Generate the response  */
@@ -153,7 +172,6 @@ void VXI_Server::create_link()
     create_response->abort_port = 0;
     create_response->max_receive_size = VXI_READ_SIZE - 4;
     send_vxi_packet(client, sizeof(create_response_packet));
-    scpi_handler.claim_control();    
 }
 
 void VXI_Server::destroy_link()

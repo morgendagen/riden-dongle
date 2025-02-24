@@ -33,7 +33,10 @@ class RidenScpi
 
     // some inferface functions to handle commands to the SCPI parser from an outside source
     // TODO: The SCPI parser should be externalised into another class and instance
-    void claim_external_control() { external_control = true; }
+    bool claim_external_control() { 
+      external_control = true; 
+      return true; // I always gain priority
+    }
     void release_external_control() { external_control = false; }
     void write(const char *data, size_t len);
     scpi_result_t read(char *data, size_t *len, size_t max_len);

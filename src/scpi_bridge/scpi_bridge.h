@@ -16,9 +16,9 @@ class SCPI_handler: public SCPI_handler_interface
     {
         return ridenScpi.read(data, len, max_len);
     }
-    void claim_control() override
+    bool claim_control() override
     {
-        ridenScpi.claim_external_control();
+        return ridenScpi.claim_external_control();
     }
     void release_control() override
     {
