@@ -243,5 +243,6 @@ void VXI_Server::disconnect_client(const IPAddress &ip)
 {
     if (client && client.connected() && client.remoteIP() == ip) {
         client.stop();
+        scpi_handler.release_control();
     }
 }
