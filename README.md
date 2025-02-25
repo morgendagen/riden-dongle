@@ -32,7 +32,7 @@ The firmware has been tested with various tools and libraries:
 - Automatically set power supply clock based on NTP.
 - mDNS advertising.
 - Handles approximately 65 queries/second using Modbus TCP or raw socket SCPI
-  (tested using Unisoft v1.41.1k, UART baudrate set at 9600).
+  (tested using Unisoft v1.41.1k, UART baudrate set at 921600).
 
 ## Warning
 
@@ -95,21 +95,25 @@ as part of the repository.
 
 ## Compiling the Firmware
 
-You will need [PlatformIO](https://platformio.org/) in order to
-compile the
-firmware.
+If you want to compile, you will need [PlatformIO](https://platformio.org/) in order to
+compile the firmware.
 
 No configuration is necessary; simply execute `pio run` and wait.
 The firmware is located at `.pio/build/esp12e/firmware.bin`.
 
 ## Flashing the Firmware
 
-Provided you have prepared the hardware as described, connect
-it to your computer as you would when flashing any other ESP12F module.
+Provided you have prepared the hardware as described, and have either compiled, or downloaded a binary, 
+you must connect the dongle to your computer as you would when flashing any other ESP12F module.
 
-Execute
+You can use multiple tools to flash the firmware. The most well known are:
 
-    pio run -t upload --upload-port <ESP12F serial port>
+* platformio
+* esptool (also available without installation: https://espressif.github.io/esptool-js/)
+
+Example with PlatformIO:
+
+```pio run -t upload --upload-port <ESP12F serial port>```
 
 and wait for the firmware to be flashed.
 
@@ -146,7 +150,7 @@ http://RDxxxx-ssssssss.local.
 
 Execute the command
 
-    lxi discover -m
+```lxi discover -m```
 
 to get a list of discovered SCPI devices on the network.
 This firmware sneakily advertised `lxi` support in order
@@ -154,20 +158,20 @@ for lxi-tools to recognise it.
 
 Execute the command
 
-    lxi scpi -a RDxxxx-ssssssss.local -r "*IDN?"
+```lxi scpi -a RDxxxx-ssssssss.local -r "*IDN?"```
 
 to retrieve the SCPI identification string containing
 power supply model, and firmware version.
 
 Execute the command
 
-    lxi scpi -a RDxxxx-ssssssss.local -r "VOLT?"
+```lxi scpi -a RDxxxx-ssssssss.local -r "VOLT?"```
 
 to retrieve the currently set voltage.
 
 Invoke
 
-    lxi scpi -a RDxxxx-ssssssss.local -r "VOLT 3.3"
+```lxi scpi -a RDxxxx-ssssssss.local -r "VOLT 3.3"```
 
 to set the voltage to 3.3V
 
