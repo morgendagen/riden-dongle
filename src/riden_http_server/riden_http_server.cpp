@@ -598,6 +598,7 @@ void RidenHttpServer::handle_lxi_identification()
         subnet_mask.c_str(),
         mac_address.c_str(),
         gateway.c_str(),
+        vxi_server.get_visa_resource(),
         scpi.get_visa_resource(),
         0 // Guard against wrong parameters, such as ${9999}
     };
