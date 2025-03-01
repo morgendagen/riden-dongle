@@ -34,19 +34,23 @@ The firmware has been tested with various tools and libraries:
 - Handles approximately 65 queries/second using Modbus TCP or raw socket SCPI
   (tested using Unisoft v1.41.1k, UART baudrate set at 921600).
 
+
 ## Warning
 
 - When flashing the Riden WiFi module you _will_ erase the existing firmware.
 - The firmware provided in this repository comes with no warranty.
+
 
 ## Query Performance
 
 The regular Riden power supply firmware is considerably slower than UniSoft,
 handling less than 10 queries/second.
 
+
 ## VISA communication directives
 
 An example test program can be found under [/scripts/test_pyvisa.py](/scripts/test_pyvisa.py)
+
 
 ### VXI-11
 
@@ -55,6 +59,7 @@ The VXI-11 channel (`TCPIP::<ip address>::INSTR`) is auto discoverable via mDNS,
 While you use the VXI server, the raw socket server is disabled.
 
 Note that when you use the web interface to kill a VXI-11 client, it will not properly inform the client. It will just kill the connection.
+
 
 ### Raw sockets
 
@@ -71,6 +76,7 @@ Also, be aware that when writing many commands to the device, the network layers
 
 VXI-11 does not have this problem, since every command requires an ACK.
 
+
 ## Hardware Preparations
 
 This one had me stuck for some time. To quote from
@@ -83,15 +89,30 @@ https://community.home-assistant.io/t/riden-rd6006-dc-power-supply-ha-support-wi
 > to run in “TTL mode” as well.
 
 In order to flash an existing Riden WiFi module, solder on
-three additional wires: GPIO0, EN, and 3.3V. In order to ease
-development you may want to terminate the wires in a Dupont header connector
+three additional wires: GPIO0, EN, and 3.3V.
+
+In order to ease development you may want to terminate the wires in a Dupont header connector
 allowing you to more easily use an ESP01 USB Serial Adapter or similar.
+
+You may also put a small perforated PCB on top of the ESP metal housing (do not cover the antenna!) with the required resistors and maybe buttons.
+
+Whatever you use, in order to flash the device, you will need the following:
+
+- power of course: 5V + GND (on the existing header). You may be able to provide power via the 3V3 line, but the board already has a 5V to 3V3 conversion internally, so using 5V is preferred.
+- connect your serial link to GND, RX, TX (on the existing header)
+- pull EN to 3V3 all the time via a resistor (1k..10k)
+- during boot, connect GPIO0 to GND for a short period, and after that, pull it to 3V3 via a resistor (10k). A push button may be helpful here.
+- not strictly needed, but helpful: a reset button to RST
+
+If you want to use buttons, see [here](riden-dongle-schema.png) for how to connect the resistors and buttons for programming.
+
 
 ## Download the Firmware from GitHub
 
 Firmware files will be
 [released on GitHub](https://github.com/morgendagen/riden-dongle/releases)
 as part of the repository.
+
 
 ## Compiling the Firmware
 
@@ -101,19 +122,19 @@ compile the firmware.
 No configuration is necessary; simply execute `pio run` and wait.
 The firmware is located at `.pio/build/esp12e/firmware.bin`.
 
+
 ## Flashing the Firmware
 
-Provided you have prepared the hardware as described, and have either compiled, or downloaded a binary, 
-you must connect the dongle to your computer as you would when flashing any other ESP12F module.
+Provided you have prepared the hardware as described, and have either compiled, or downloaded a binary, you must connect the dongle to your computer as you would when flashing any other ESP12F module.
 
 You can use multiple tools to flash the firmware. The most well known are:
 
-* platformio
-* esptool (also available without installation: https://espressif.github.io/esptool-js/)
+- platformio
+- esptool (also available without installation: https://espressif.github.io/esptool-js/)
 
 Example with PlatformIO:
 
-```pio run -t upload --upload-port <ESP12F serial port>```
+   pio run -t upload --upload-port <ESP12F serial port>
 
 and wait for the firmware to be flashed.
 
@@ -146,11 +167,12 @@ after a short while, and eventually stop. You should now
 be able to connect to the dongle at
 http://RDxxxx-ssssssss.local.
 
+
 ## Using lxi-tools to Verify Installation
 
 Execute the command
 
-```lxi discover -m```
+    lxi discover -m
 
 to get a list of discovered SCPI devices on the network.
 This firmware sneakily advertised `lxi` support in order
@@ -158,25 +180,26 @@ for lxi-tools to recognise it.
 
 Execute the command
 
-```lxi scpi -a RDxxxx-ssssssss.local -r "*IDN?"```
+    lxi scpi -a RDxxxx-ssssssss.local -r "*IDN?"
 
 to retrieve the SCPI identification string containing
 power supply model, and firmware version.
 
 Execute the command
 
-```lxi scpi -a RDxxxx-ssssssss.local -r "VOLT?"```
+    lxi scpi -a RDxxxx-ssssssss.local -r "VOLT?"
 
 to retrieve the currently set voltage.
 
 Invoke
 
-```lxi scpi -a RDxxxx-ssssssss.local -r "VOLT 3.3"```
+    lxi scpi -a RDxxxx-ssssssss.local -r "VOLT 3.3"
 
 to set the voltage to 3.3V
 
 A description of the implemented commands is
 available in [SCPI_COMMANDS.md](SCPI_COMMANDS.md).
+
 
 ## OTA firmware update
 
@@ -188,12 +211,14 @@ it to a computer.
 From the `Configure` page you can upload a
 new firmware binary.
 
+
 ## Limitations
 
 The Riden power supply firmware has some quirks as described
 below. The firmware provided here err towards caution, and
 does not implement functionality that is known to be
 unreliable.
+
 
 ### Currently Active OVP and OCP Values
 
@@ -203,6 +228,7 @@ are set via the front panel, M0 does reflect the new values.
 
 Therefore I have decided NOT to support `*SAV`. `*RCL` is implemented.
 
+
 ### Preset Register
 
 The Preset register (19) only reflects the active preset if
@@ -210,14 +236,17 @@ changed via the modbus interface. It is not updated if a preset
 is selected using the front panel. Therefore it is currently not
 possible to retrieve the selected preset.
 
+
 ### Language Selection
 
 Only 0 and 1 are recognised when setting the Language register. Reading
 the register matches the language set from the front panel.
 
+
 ### Keypad
 
 It is not possible to control keypad lock.
+
 
 ## Credits
 
