@@ -8,6 +8,9 @@
 #include <riden_modbus/riden_modbus.h>
 #include <riden_modbus_bridge/riden_modbus_bridge.h>
 #include <riden_scpi/riden_scpi.h>
+#include <vxi11_server/rpc_bind_server.h>
+#include <vxi11_server/vxi_server.h>
+#include <scpi_bridge/scpi_bridge.h>
 
 #include <Arduino.h>
 #include <ArduinoOTA.h>
@@ -22,6 +25,10 @@
 
 #define NTP_SERVER "pool.ntp.org"
 
+#ifdef MOCK_RIDEN
+#define MODBUS_USE_SOFWARE_SERIAL
+#endif
+
 using namespace RidenDongle;
 
 static Ticker led_ticker;
@@ -32,10 +39,13 @@ static bool did_update_time = false;
 
 static bool connected = false;
 
-static RidenModbus riden_modbus;
-static RidenScpi riden_scpi(riden_modbus);
-static RidenModbusBridge modbus_bridge(riden_modbus);
-static RidenHttpServer http_server(riden_modbus, riden_scpi, modbus_bridge);
+static RidenModbus riden_modbus;                      ///< The modbus server
+static RidenScpi riden_scpi(riden_modbus);            ///< The raw socket server + the SCPI command handler
+static RidenModbusBridge modbus_bridge(riden_modbus); ///< The modbus TCP server
+static SCPI_handler scpi_handler(riden_scpi);         ///< The bridge from the vxi server to the SCPI command handler
+static VXI_Server vxi_server(scpi_handler);           ///< The vxi server
+static RPC_Bind_Server rpc_bind_server(vxi_server);   ///< The RPC_Bind_Server for the vxi server
+static RidenHttpServer http_server(riden_modbus, riden_scpi, modbus_bridge, vxi_server); ///< The web server
 
 /**
  * Invoked by led_ticker to flash the LED.
@@ -67,7 +77,7 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
     led_ticker.attach(0.6, tick);
 
-#if MODBUS_USE_SOFWARE_SERIAL
+#ifdef MODBUS_USE_SOFWARE_SERIAL
     Serial.begin(74880);
     delay(1000);
 #endif
@@ -94,6 +104,8 @@ void setup()
 
         riden_scpi.begin();
         modbus_bridge.begin();
+        vxi_server.begin();
+        rpc_bind_server.begin();
 
         // turn off led
         led_ticker.detach();
@@ -132,6 +144,10 @@ static bool connect_wifi(const char *hostname)
         wifi_connected = wifiManager.autoConnect(hostname);
     }
     if (wifi_connected) {
+
+        LOG_F("WiFi SSID: %s\r\n", WiFi.SSID().c_str());
+        LOG_F("IP: %s\r\n", WiFi.localIP().toString().c_str());
+
         experimental::ESP8266WiFiGratuitous::stationKeepAliveSetIntervalMs();
         if (hostname != nullptr) {
             if (!MDNS.begin(hostname)) {
@@ -180,6 +196,8 @@ void loop()
         riden_modbus.loop();
         riden_scpi.loop();
         modbus_bridge.loop();
+        rpc_bind_server.loop();
+        vxi_server.loop();
     }
     http_server.loop();
     ArduinoOTA.handle();

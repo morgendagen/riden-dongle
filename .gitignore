@@ -7,3 +7,7 @@
 .venv/
 __pycache__
 *.pyc
+.vscode/extensions.json
+.vscode/settings.json
+src/hislip_server/
+pcap/

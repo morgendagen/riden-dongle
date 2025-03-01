@@ -7,6 +7,7 @@
 #include <riden_modbus/riden_modbus.h>
 #include <riden_modbus_bridge/riden_modbus_bridge.h>
 #include <riden_scpi/riden_scpi.h>
+#include <vxi11_server/vxi_server.h>
 
 #include <ESP8266WebServer.h>
 
@@ -18,7 +19,7 @@ namespace RidenDongle
 class RidenHttpServer
 {
   public:
-    explicit RidenHttpServer(RidenModbus &modbus, RidenScpi &scpi, RidenModbusBridge &bridge) : modbus(modbus), scpi(scpi), bridge(bridge), server(HTTP_RAW_PORT) {}
+    explicit RidenHttpServer(RidenModbus &modbus, RidenScpi &scpi, RidenModbusBridge &bridge, VXI_Server &vxi_server) : modbus(modbus), scpi(scpi), bridge(bridge), vxi_server(vxi_server), server(HTTP_RAW_PORT) {}
     bool begin();
     void loop(void);
     uint16_t port();
@@ -27,6 +28,7 @@ class RidenHttpServer
     RidenModbus &modbus;
     RidenScpi &scpi;
     RidenModbusBridge &bridge;
+    VXI_Server &vxi_server;
     ESP8266WebServer server;
 
     void handle_root_get();
@@ -56,7 +58,6 @@ class RidenHttpServer
 
     const char *get_firmware_version();
     const char *get_serial_number();
-    const char *get_visa_resource();
 };
 
 } // namespace RidenDongle

@@ -184,7 +184,8 @@ static const char *HTML_NO_CONNECTION_BODY =
  * 5 = Subnet mask
  * 6 = MAC Address
  * 7 = IP Gateway
- * 8 = VISA Resource Address
+ * 8 = VISA Resource Address 1
+ * 9 = VISA Resource Address 2
  */
 static const char *LXI_IDENTIFICATION_TEMPLATE = R"==(<?xml version="1.0" encoding="UTF-8" ?>
 <LXIDevice xmlns="http://www.lxistandard.org/InstrumentIdentification/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.lxistandard.org/InstrumentIdentification/1.0/LXIIdentification.xsd">
@@ -196,6 +197,7 @@ static const char *LXI_IDENTIFICATION_TEMPLATE = R"==(<?xml version="1.0" encodi
     <IdentificationURL>http://${3}.local/lxi/identification</IdentificationURL>
     <Interface xsi:type="NetworkInformation" InterfaceType="LXI" IPType="IPv4">
         <InstrumentAddressString>${8}</InstrumentAddressString>
+        <InstrumentAddressString>${9}</InstrumentAddressString>
         <Hostname>${3}</Hostname>
         <IPAddress>${4}</IPAddress>
         <SubnetMask>${5}</SubnetMask>

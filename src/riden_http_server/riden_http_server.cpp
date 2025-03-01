@@ -6,6 +6,7 @@
 #include <riden_config/riden_config.h>
 #include <riden_http_server/riden_http_server.h>
 #include <riden_logging/riden_logging.h>
+#include <vxi11_server/vxi_server.h>
 
 #include <ESP8266mDNS.h>
 #include <TinyTemplateEngineMemoryReader.h>
@@ -13,8 +14,9 @@
 
 using namespace RidenDongle;
 
-static const String scpi_protocol = "SCPI";
+static const String scpi_protocol = "SCPI RAW";
 static const String modbustcp_protocol = "Modbus TCP";
+static const String vxi11_protocol = "VXI-11";
 static const std::list<uint32_t> uart_baudrates = {
     9600,
     19200,
@@ -360,6 +362,8 @@ void RidenHttpServer::handle_disconnect_client_post()
             scpi.disconnect_client(ip);
         } else if (protocol == modbustcp_protocol) {
             bridge.disconnect_client(ip);
+        } else if (protocol == vxi11_protocol) {
+            vxi_server.disconnect_client(ip);
         }
     }
 
@@ -490,9 +494,10 @@ void RidenHttpServer::send_services()
     server.sendContent("                <tbody>");
     send_info_row("Web Server Port", String(this->port(), 10));
     send_info_row("Modbus TCP Port", String(bridge.port(), 10));
-    String scpi_port = String(scpi.port(), 10);
-    send_info_row("SCPI Port", scpi_port);
-    send_info_row("VISA Resource Address", get_visa_resource());
+    send_info_row("VXI-11 Port", String(vxi_server.port(), 10));
+    send_info_row("SCPI RAW Port", String(scpi.port(), 10));
+    send_info_row("VISA Resource Address VXI-11", vxi_server.get_visa_resource());
+    send_info_row("VISA Resource Address RAW", scpi.get_visa_resource());
     server.sendContent("                </tbody>");
     server.sendContent("            </table>");
     server.sendContent("        </div>");
@@ -509,6 +514,9 @@ void RidenHttpServer::send_connected_clients()
     server.sendContent("                <th></th>");
     server.sendContent("                </tr></thead>");
     server.sendContent("                <tbody>");
+    for (auto const &ip : vxi_server.get_connected_clients()) {
+        send_client_row(ip, vxi11_protocol);
+    }    
     for (auto const &ip : scpi.get_connected_clients()) {
         send_client_row(ip, scpi_protocol);
     }
@@ -590,7 +598,8 @@ void RidenHttpServer::handle_lxi_identification()
         subnet_mask.c_str(),
         mac_address.c_str(),
         gateway.c_str(),
-        get_visa_resource(),
+        vxi_server.get_visa_resource(),
+        scpi.get_visa_resource(),
         0 // Guard against wrong parameters, such as ${9999}
     };
     TinyTemplateEngineMemoryReader reader(LXI_IDENTIFICATION_TEMPLATE);
@@ -626,9 +635,3 @@ const char *RidenHttpServer::get_serial_number()
     return serial_number_string;
 }
 
-const char *RidenHttpServer::get_visa_resource()
-{
-    static char visa_resource[40];
-    sprintf(visa_resource, "TCPIP::%s::%u::SOCKET", WiFi.localIP().toString().c_str(), scpi.port());
-    return visa_resource;
-}

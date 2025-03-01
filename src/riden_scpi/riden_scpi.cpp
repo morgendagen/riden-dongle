@@ -11,6 +11,53 @@
 #include <SCPI_Parser.h>
 #include <functional>
 
+// ************
+// This file combines a socket server with an SCPI parser.
+//
+// 3 main different types of socket servers are supported or are potentially possible:
+// 
+// ** RAW socket
+// The default. Requires no special flags.
+// scpi-raw uses a raw TCP connection to send and receive SCPI commands.
+// This FW implementation supports only 1 client.
+// - Discovery is done via mDNS, and the service name is "scpi-raw" (_scpi-raw._tcp).
+// - The VISA string is like: "TCPIP::<ip address>::5025::SOCKET" (using the default port 5025)
+// - The SCPI commands and responses are sent as plain text, delimited by newline characters.
+// - is not discoverable by pyvisa, and requires a construction like this in Python:
+// if args.port.endswith("::SOCKET"):
+//     inst.read_termination = "\n"
+//     inst.write_termination = "\n"
+// ==> this is in this file
+//
+//
+// ** VXI-11
+// widely supported
+// - Requires 2 socket services: portmap/rpcbind (port 111) and vxi-11 (any port you want)
+// - Discovery is done via portmap when replying to GETPORT VXI-11 Core. This should be on UDP and TCP, but you can get by in TCP.
+// - Secondary discovery is done via mDNS, and the service name is "vxi-11" (_vxi-11._tcp). That mapper points directly to the vxi server port.
+// - The VISA string is like: "TCPIP::<ip address>::INSTR"
+// - The SCPI commands and responses are sent as binary data, with a header and a payload.
+// - VXI-11 has separate commands for reading and writing.
+// - is discoverable by pyvisa, and requires no special construction in Python
+// ==> this is in a parallel server, see vxi11_server rpc_bind_server
+//
+//
+// ** HiSLIP 
+// see https://www.ivifoundation.org/downloads/Protocol%20Specifications/IVI-6.1_HiSLIP-2.0-2020-04-23.pdf
+// see https://lxistandard.org/members/Adopted%20Specifications/Latest%20Version%20of%20Standards_/LXI%20Version%201.6/LXI_HiSLIP_Extended_Function_1.3_2022-05-26.pdf
+// is a more modern protocol. It can use a synchronous and/or an asynchronous connection. 
+// - Discovery is done via mDNS, and the service name is "hislip" (_hislip._tcp)
+// - The VISA string is like: "TCPIP::<ip address>::hislip0::INSTR" (using the default port 4880)
+// - The SCPI commands and responses are sent as binary data, with a header and a payload.
+// - It requires 2 connections on the same port (async and sync), even if you only use 1
+// - is discoverable by pyvisa, and requires no special construction in Python other than installation of zeroconf
+// ==> THE 2 CONNECTIONS MAKE IT NOT EASY TO DO WITHOUT REWRITING MUCH OF riden_scpi.cpp, AND WORK WAS ABANDONED
+
+
+#ifdef MOCK_RIDEN
+#define MODBUS_USE_SOFWARE_SERIAL
+#endif
+
 using namespace RidenDongle;
 
 // We only support one client
@@ -122,10 +169,11 @@ size_t SCPI_ResultChoice(scpi_t *context, scpi_choice_def_t *options, int32_t va
 size_t RidenScpi::SCPI_Write(scpi_t *context, const char *data, size_t len)
 {
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
-
+    LOG_F("SCPI_Write: writing \"%.*s\"\n", (int)len, data);
+    ridenScpi->external_output_ready = false; // don't send half baked data to the client
     memcpy(&(ridenScpi->write_buffer[ridenScpi->write_buffer_length]), data, len);
     ridenScpi->write_buffer_length += len;
-
+    
     return len;
 }
 
@@ -133,12 +181,17 @@ scpi_result_t RidenScpi::SCPI_Flush(scpi_t *context)
 {
     RidenScpi *ridenScpi = static_cast<RidenScpi *>(context->user_context);
 
+    if (ridenScpi->external_control) {
+        // do not write to the client, let the read function fetch the data
+        ridenScpi->external_output_ready = true;
+        return SCPI_RES_OK;
+    }
+    LOG_F("SCPI_Flush: sending \"%.*s\"\n", (int)ridenScpi->write_buffer_length, ridenScpi->write_buffer);
     if (ridenScpi->client) {
         ridenScpi->client.write(ridenScpi->write_buffer, ridenScpi->write_buffer_length);
         ridenScpi->write_buffer_length = 0;
         ridenScpi->client.flush();
     }
-
     return SCPI_RES_OK;
 }
 
@@ -398,6 +451,8 @@ scpi_result_t RidenScpi::SourceVoltage(scpi_t *context)
     scpi_choice_def_t special;
     scpi_number_t value;
 
+    LOG_F("SourceVoltage command\n");
+
     if (!SCPI_ParamNumber(context, &special, &value, TRUE)) {
         return SCPI_RES_ERR;
     }
@@ -637,6 +692,55 @@ scpi_result_t RidenScpi::SystemBeeperStateQ(scpi_t *context)
     }
 }
 
+/**
+ * @brief Write data to the parser and the device.
+ * It overwrites the data in the buffer from the raw socket server.
+ * 
+ * @param data data to be sent
+ * @param len length of data
+ */
+void RidenScpi::write(const char *data, size_t len) 
+{
+    if ((len == 0) || (data == NULL)) return;
+    // insert the data into the buffer.
+    if (len > SCPI_INPUT_BUFFER_LENGTH) {
+        LOG_F("ERROR: RidenScpi buffer overflow. Ignoring data.\n");
+        return;
+    }
+    memcpy(scpi_context.buffer.data, data, len);
+    scpi_context.buffer.position = len;
+    scpi_context.buffer.length = len;
+    external_control = true; // just to be sure
+    SCPI_Input(&scpi_context, NULL, 0);
+}
+
+/**
+ * @brief Read data from the parser and the device, this is the reaction to "write()"
+ * 
+ * @param data buffer to copy the data into
+ * @param len length of data
+ * @param max_len maximum length of data
+ * @return scpi_result_t last error code
+ */
+scpi_result_t RidenScpi::read(char *data, size_t *len, size_t max_len){
+    if (!external_control || len == NULL || data == NULL) {
+        return SCPI_RES_ERR;
+    }
+    *len = 0;
+    if (write_buffer_length > max_len) {
+        LOG_F("ERROR: RidenScpi output buffer overflow. Flushing the data.\n");
+        return SCPI_RES_ERR;
+    }
+    if (!external_output_ready) {
+
+        return SCPI_RES_ERR;
+    }
+    memcpy(data, write_buffer, write_buffer_length);
+    *len = write_buffer_length;
+    write_buffer_length = 0;
+    return SCPI_RES_OK;
+}
+
 bool RidenScpi::begin()
 {
     if (initialized) {
@@ -668,6 +772,7 @@ bool RidenScpi::begin()
     tcpServer.setNoDelay(true);
 
     if (MDNS.isRunning()) {
+        LOG_LN("RidenScpi advertising as scpi-raw.");
         auto scpi_service = MDNS.addService(NULL, "scpi-raw", "tcp", tcpServer.port());
         MDNS.addServiceTxt(scpi_service, "version", SCPI_STD_VERSION_REVISION);
     }
@@ -680,9 +785,19 @@ bool RidenScpi::begin()
 
 bool RidenScpi::loop()
 {
+    if (external_control) {
+        // skip this loop if I'm under external control
+        if (client) {
+            LOG_LN("RidenScpi: disconnect client because I am under external control.");
+            client.stop();
+        }
+        return true;
+    }
+
     // Check for new client connecting
     WiFiClient newClient = tcpServer.accept();
     if (newClient) {
+        LOG_LN("RidenScpi: New client.");
         if (!client) {
             newClient.setTimeout(100);
             newClient.setNoDelay(true);
@@ -697,26 +812,33 @@ bool RidenScpi::loop()
     if (client) {
         int bytes_available = client.available();
         if (bytes_available > 0) {
-            int space_left = SCPI_INPUT_BUFFER_LENGTH - scpi_context.buffer.position;
-            if (space_left >= bytes_available) {
-                int bytes_read = client.readBytes(&(scpi_context.buffer.data[scpi_context.buffer.position]), bytes_available);
-                if (bytes_read > 0) {
-                    scpi_context.buffer.position += bytes_read;
-                    scpi_context.buffer.length += bytes_read;
-                    uint8_t last_byte = scpi_context.buffer.data[scpi_context.buffer.position - 1];
-                    if (last_byte == '\n') {
-                        SCPI_Input(&scpi_context, NULL, 0);
-                    }
+            // Now read until I find a newline. There may be way more data in the buffer than 1 command.
+            char buffer[1];
+            while (client.readBytes(buffer, 1) == 1) {
+                if (scpi_context.buffer.position >= SCPI_INPUT_BUFFER_LENGTH) {
+                    // Client is sending more data than we can handle
+                    LOG_F("ERROR: RidenScpi buffer overflow. Flushing data and killing connection.\n");
+                    scpi_context.buffer.position = 0;
+                    scpi_context.buffer.length = 0;
+                    client.stop();
+                    break;
                 }
-            } else {
-                // Client is sending more data than we can handle
-                client.stop();
+                // insert the character into the buffer.
+                scpi_context.buffer.data[scpi_context.buffer.position] = buffer[0];
+                scpi_context.buffer.position++;
+                scpi_context.buffer.length++;
+                if (buffer[0] == '\n') {
+                    LOG_F("RidenScpi: received %d bytes for handling\n", scpi_context.buffer.position);
+                    SCPI_Input(&scpi_context, NULL, 0);
+                    break;
+                }
             }
         }
     }
 
     // Stop client which disconnects
     if (client && !client.connected()) {
+        LOG_LN("RidenScpi: disconnect client.");
         client.stop();
     }
 
@@ -750,3 +872,12 @@ void RidenScpi::reset_buffers()
     scpi_context.buffer.length = 0;
     scpi_context.buffer.position = 0;
 }
+
+const char *RidenScpi::get_visa_resource()
+{
+    static char visa_resource[40];
+    sprintf(visa_resource, "TCPIP::%s::%u::SOCKET", WiFi.localIP().toString().c_str(), port());
+    return visa_resource;
+}
+
+

@@ -46,6 +46,9 @@ const char *RidenDongle::build_time = nullptr;
 
 bool RidenConfig::begin()
 {
+#ifdef MOCK_RIDEN
+    return true;
+#else
     EEPROM.begin(512);
     RidenConfigHeader header{0};
     EEPROM.get(0, header);
@@ -86,6 +89,7 @@ bool RidenConfig::begin()
     }
 
     return success;
+#endif
 }
 
 void RidenConfig::set_timezone_name(String tz_name)
@@ -146,6 +150,9 @@ void RidenConfig::set_uart_baudrate(uint32_t baudrate)
 
 bool RidenConfig::commit()
 {
+#ifdef MOCK_RIDEN
+    return true;
+#else
     RidenConfigStructV2 config;
     memcpy(config.header.magic, MAGIC, sizeof(MAGIC));
     config.header.config_version = CURRENT_CONFIG_VERSION;
@@ -164,6 +171,7 @@ bool RidenConfig::commit()
         LOG_LN("RidenConfig: Failed to save configuration");
     }
     return success;
+#endif
 }
 
 RidenConfig RidenDongle::riden_config;

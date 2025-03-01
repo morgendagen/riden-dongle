@@ -29,6 +29,17 @@ class RidenScpi
     uint16_t port();
     std::list<IPAddress> get_connected_clients();
     void disconnect_client(const IPAddress &ip);
+    const char *get_visa_resource();
+
+    // some inferface functions to handle commands to the SCPI parser from an outside source
+    // TODO: The SCPI parser should be externalised into another class and instance
+    bool claim_external_control() { 
+      external_control = true; 
+      return true; // I always gain priority
+    }
+    void release_external_control() { external_control = false; }
+    void write(const char *data, size_t len);
+    scpi_result_t read(char *data, size_t *len, size_t max_len);
 
   private:
     RidenModbus &ridenModbus;
@@ -46,6 +57,11 @@ class RidenScpi
     char write_buffer[WRITE_BUFFER_LENGTH] = {};
     size_t write_buffer_length = 0;
 
+    // external_control is used to indicate that the SCPI parser is handling a command from outside of the socket server
+    // See claim_external_control() and release_external_control()
+    bool external_control = false;
+    bool external_output_ready = false;
+
     static const scpi_command_t scpi_commands[];
     static scpi_interface_t scpi_interface;
 
@@ -60,6 +76,8 @@ class RidenScpi
     // conventions.
     static size_t SCPI_Write(scpi_t *context, const char *data, size_t len);
     static scpi_result_t SCPI_Flush(scpi_t *context);
+    scpi_result_t SCPI_FlushRaw(void);
+  
     static int SCPI_Error(scpi_t *context, int_fast16_t err);
     static scpi_result_t SCPI_Control(scpi_t *context, scpi_ctrl_name_t ctrl, scpi_reg_val_t val);
     static scpi_result_t SCPI_Reset(scpi_t *context);

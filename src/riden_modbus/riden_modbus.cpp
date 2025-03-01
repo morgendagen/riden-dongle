@@ -7,6 +7,7 @@
 #include <riden_modbus/riden_modbus.h>
 
 #include <Arduino.h>
+#ifndef MOCK_RIDEN
 #ifdef MODBUS_USE_SOFWARE_SERIAL
 #include <SoftwareSerial.h>
 #endif
@@ -18,11 +19,18 @@ SoftwareSerial SerialRuideng = SoftwareSerial(MODBUS_RX, MODBUS_TX);
 #else
 #define SerialRuideng Serial
 #endif
+#endif
 
 using namespace RidenDongle;
 
 bool RidenModbus::begin()
 {
+#ifdef MOCK_RIDEN
+    LOG_LN("RuidengModbus mocked");
+    initialized = true;
+    this->type = "RDMOCKED";
+    return true;
+#else
     if (initialized) {
         return true;
     }
@@ -80,16 +88,21 @@ bool RidenModbus::begin()
     LOG_LN("RuidengModbus initialized");
     initialized = true;
     return true;
+#endif
 }
 
 bool RidenModbus::loop()
 {
+#ifdef MOCK_RIDEN
+    return true;
+#else
     if (!initialized) {
         return false;
     }
 
     modbus.task();
     return true;
+#endif
 }
 
 bool RidenModbus::is_connected()
@@ -650,6 +663,9 @@ bool RidenModbus::write_boolean(const Register reg, const boolean b)
 
 bool RidenModbus::wait_for_inactive()
 {
+#ifdef MOCK_RIDEN
+    return true;
+#else 
     if (!initialized) {
         return false;
     }
@@ -665,10 +681,15 @@ bool RidenModbus::wait_for_inactive()
         }
     }
     return true;
+#endif
 }
 
 bool RidenModbus::read_holding_registers(const uint16_t offset, uint16_t *value, const uint16_t numregs)
 {
+#ifdef MOCK_RIDEN
+    memset(value, 0, numregs * sizeof(uint16_t));
+    return true;
+#else
     if (!wait_for_inactive()) {
         return false;
     }
@@ -678,10 +699,14 @@ bool RidenModbus::read_holding_registers(const uint16_t offset, uint16_t *value,
     }
     // Wait until we receive an answer
     return wait_for_inactive();
+#endif
 }
 
 bool RidenModbus::write_holding_register(const uint16_t offset, const uint16_t value)
 {
+#ifdef MOCK_RIDEN
+    return true;
+#else  
     if (!wait_for_inactive()) {
         return false;
     }
@@ -691,10 +716,14 @@ bool RidenModbus::write_holding_register(const uint16_t offset, const uint16_t v
     }
     // Wait until we receive an answer
     return wait_for_inactive();
+#endif
 }
 
 bool RidenModbus::write_holding_registers(const uint16_t offset, uint16_t *value, uint16_t numregs)
 {
+#ifdef MOCK_RIDEN
+    return true;
+#else
     if (!wait_for_inactive()) {
         return false;
     }
@@ -704,6 +733,7 @@ bool RidenModbus::write_holding_registers(const uint16_t offset, uint16_t *value
     }
     // Wait until we receive an answer
     return wait_for_inactive();
+#endif
 }
 
 bool RidenModbus::read_holding_registers(const Register reg, uint16_t *value, const uint16_t numregs)
