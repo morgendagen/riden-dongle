@@ -17,6 +17,25 @@ Beware that this configuration uses `SoftwareSerial`
 for the connection to the power supply, which limits
 the safe UART baudrate to 38400 bps.
 
+## Serial Port Configuration
+
+In order to upload new firmware as well as monitor the serial
+output for debugging you must create a `.env` file in the project
+root.
+
+The `.env` file can also be used to add additional build flags.
+
+Example content:
+
+    # env:esp12e
+    UPLOAD_PORT_esp12e=
+    MONITOR_PORT_esp12e=/dev/tty.usbserial-11430
+
+    # env:nodemcuv2
+    UPLOAD_PORT_nodemcuv2=/dev/cu.SLAB_USBtoUART
+    MONITOR_PORT_nodemcuv2=/dev/cu.SLAB_USBtoUART
+    #EXTRA_BUILD_FLAGS_nodemcuv2=-D WM_DEBUG_LEVEL=DEBUG_DEV -D MODBUSRTU_DEBUG -D MODBUSIP_DEBUG
+
 
 ## Testing GitHub Workflow Locally
 
