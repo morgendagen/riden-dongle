@@ -248,6 +248,18 @@ the register matches the language set from the front panel.
 It is not possible to control keypad lock.
 
 
+### Modbus Register 69 (Buzzer Enabled)
+
+Some power supply firmwares (UniSoft RD6006 V1.41.1k, amongst others)
+return an inverted value for modbus register 69 (buzzer enabled).
+Riden RD6006 firmware V1.41 does _not_ exhibit this issue.
+
+The outcome is that, depending on the Riden firmware installed,
+writing the register works as expected, but reading it back may
+produce an incorrect result. Likewise the SCPI command
+`SYST:BEEP:STATE?` may also return an incorrect value.
+
+
 ## Credits
 
 - https://github.com/emelianov/modbus-esp8266

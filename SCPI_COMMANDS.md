@@ -152,3 +152,6 @@ Control the buzzer.
 ## SYSTem:BEEPer:STATe?
 
 Returns the buzzer state.
+
+**NOTE:** Depending on the installed power supply firmware, the returned
+value will be inverted compared to the actual setting.
