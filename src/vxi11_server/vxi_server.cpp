@@ -77,10 +77,15 @@ void VXI_Server::loop()
     if (client) // if a connection has been established on port
     {
         bool bClose = false;
-        int len = get_vxi_packet(client);
 
-        if (len > 0) {
-            bClose = handle_packet();
+        if (!client.connected()) {
+            bClose = true;
+        } else {
+            int len = get_vxi_packet(client);
+
+            if (len > 0) {
+                bClose = handle_packet();
+            }
         }
 
         if (bClose) {
