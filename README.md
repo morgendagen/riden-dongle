@@ -98,14 +98,39 @@ You may also put a small perforated PCB on top of the ESP metal housing (do not 
 
 Whatever you use, in order to flash the device, you will need the following:
 
-- power of course: 5V + GND (on the existing header). You may be able to provide power via the 3V3 line, but the board already has a 5V to 3V3 conversion internally, so using 5V is preferred.
+- power of course: 5V + GND (on the existing header).
 - connect your serial link to GND, RX, TX (on the existing header)
-- pull EN to 3V3 all the time via a resistor (1k..10k)
-- during boot, connect GPIO0 to GND for a short period, and after that, pull it to 3V3 via a resistor (10k). A push button may be helpful here.
-- not strictly needed, but helpful: a reset button to RST
+- pull EN to 3V3 all the time via a resistor (10k). Take the 3V3 from the module, do not use the header, as some dongles do not have the 3V3 pin on the header connected.
+- during boot, connect GPIO0 (aka PGM) to GND for a short period, and after that, pull it to 3V3 via a resistor (10k). A push button may be helpful here.
+- not strictly needed, but helpful: a reset button to RST/RESET. If used, programming will be easier, as there is no need for power cycling to do programming. Push both RESET and PGM, let go of RESET, and then let go of PGM.
 
-If you want to use buttons, see [here](riden-dongle-schema.png) for how to connect the resistors and buttons for programming.
+_Dongle with ESP-12F:_
 
+The original dongles used this module.
+
+![Image](esp-12F_original.jpg)
+
+Lately there have been ESP-12F based dongles in a new form factor. They are difficult to obtain now.
+
+![Image](esp-12F_new_form.jpg)
+
+Here is how to adapt it:
+
+![Image](riden-dongle-schema.png)
+
+_Dongle with ESP8684:_
+
+These are the newer dongles.
+
+![Image](esp8684_based.jpg)
+
+That ESP8684 is not yet supported. But you can make it work by removing the ESP8684 and soldering a ESP-12F in place. Those modules can still be found. See here how to do it:
+
+![Image](riden-retrograded-dongle-schema.png)
+
+(the led on the board will not be used by the software)
+
+Be aware that some sellers of Riden dongles with images that show the new form factor, but with ESP-12F, may in reality deliver you a ESP8684 dongle.
 
 ## Download the Firmware from GitHub
 
