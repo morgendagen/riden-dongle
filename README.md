@@ -6,11 +6,13 @@ provides Modbus TCP and SCPI support as well as a web interface.
 The firmware has been tested with various tools and libraries:
 
 - Riden Hardware
-  - RD6006 and RD6012
+  - RD6006, RD6012, RD6030
 - Riden Firmware
   - Riden v1.28
   - Riden v1.41
-  - Unisoft v1.41.1k
+  - Riden v1.47 (6030)
+  - Unisoft v1.41.1k (6006)
+  - Unisoft V1.36.1k (6012)
 - Modbus TCP
   - [Python pyModbusTCP library](https://pypi.org/project/pyModbusTCP/)
   - [Python pymodbus library](https://pypi.org/project/pymodbus/)
@@ -44,7 +46,7 @@ The firmware has been tested with various tools and libraries:
 ## Query Performance
 
 The regular Riden power supply firmware is considerably slower than UniSoft,
-handling less than 10 queries/second.
+handling less than 10 queries/second. It is probably best to keep the UART baud rate at 19200 for the regular Riden power supply firmware. With UniSoft's firmware you can go significantly higher.
 
 
 ## VISA communication directives
@@ -79,22 +81,14 @@ VXI-11 does not have this problem, since every command requires an ACK.
 
 ## Hardware Preparations
 
-This one had me stuck for some time. To quote from
-https://community.home-assistant.io/t/riden-rd6006-dc-power-supply-ha-support-wifi/163849:
+> There are various dongles available. This firmware is at this moment only compatible with ESP-12F based modules. The newer dongles use an ESP8684, but it is possible to do a retrofit with an ESP-12F. See below.
 
-> I had to do small modification to the wifi board - I snipped one pin
-> from the pinheader (EN-Enable) so it does not make contact with the
-> power supply and soldered 1k resistor between EN and 3.3V. It is done
-> because the PS enables wifi module only in “wifi mode” but I need it
-> to run in “TTL mode” as well.
+You will need to make some changes. The 2 most important being:
 
-In order to flash an existing Riden WiFi module, solder on
-three additional wires: GPIO0, EN, and 3.3V.
+- pull EN high, as the TTL mode of the power supply does not do that, and remove or cut the pin from the header.
+- program the dongle
 
-In order to ease development you may want to terminate the wires in a Dupont header connector
-allowing you to more easily use an ESP01 USB Serial Adapter or similar.
-
-You may also put a small perforated PCB on top of the ESP metal housing (do not cover the antenna!) with the required resistors and maybe buttons.
+Either you solder on the needed components and pins directly to the WiFi module, either you put a small PCB on top of the ESP metal housing (do not cover the antenna!) with the required resistors and maybe buttons, and connect that PCB to the WiFi module.
 
 Whatever you use, in order to flash the device, you will need the following:
 
@@ -102,7 +96,7 @@ Whatever you use, in order to flash the device, you will need the following:
 - connect your serial link to GND, RX, TX (on the existing header)
 - pull EN to 3V3 all the time via a resistor (10k). Take the 3V3 from the module, do not use the header, as some dongles do not have the 3V3 pin on the header connected.
 - during boot, connect GPIO0 (aka PGM) to GND for a short period, and after that, pull it to 3V3 via a resistor (10k). A push button may be helpful here.
-- not strictly needed, but helpful: a reset button to RST/RESET. If used, programming will be easier, as there is no need for power cycling to do programming. Push both RESET and PGM, let go of RESET, and then let go of PGM.
+- not strictly needed, but helpful: a reset button connected to RST/RESET. If used, programming will be easier, as there is no need for power cycling to do programming. Push both RESET and PGM, let go of RESET, and then let go of PGM.
 
 _Dongle with ESP-12F:_
 
@@ -124,13 +118,13 @@ These are the newer dongles.
 
 ![Image](esp8684_based.jpg)
 
-That ESP8684 is not yet supported. But you can make it work by removing the ESP8684 and soldering a ESP-12F in place. Those modules can still be found. See here how to do it:
+That ESP8684 is not yet supported. But you can make it work by removing the ESP8684 and soldering a ESP-12F in place. Those WiFi modules can still be found. See here how to do it:
 
 ![Image](riden-retrograded-dongle-schema.png)
 
 (the led on the board will not be used by the software)
 
-Be aware that some sellers of Riden dongles with images that show the new form factor, but with ESP-12F, may in reality deliver you a ESP8684 dongle.
+Be aware that some sellers of Riden dongles may deliver you an ESP8684 dongle, even if their images show a ESP-12F on the dongle.
 
 ## Download the Firmware from GitHub
 
