@@ -118,7 +118,7 @@ These are the newer dongles.
 
 ![Image](esp8684_based.jpg)
 
-That ESP8684 is not yet supported. But you can make it work by removing the ESP8684 and soldering a ESP-12F in place. Those WiFi modules can still be found. See here how to do it:
+That ESP8684 is not yet supported. But you can make the dongle work by removing the ESP8684 and soldering a ESP-12F in place. Those WiFi modules can still be found. See here how to do it:
 
 ![Image](riden-retrograded-dongle-schema.png)
 
