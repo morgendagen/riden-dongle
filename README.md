@@ -118,7 +118,9 @@ These are the newer dongles.
 
 ![Image](esp8684_based.jpg)
 
-That ESP8684 is not yet supported. But you can make the dongle work by removing the ESP8684 and soldering a ESP-12F in place. Those WiFi modules can still be found. See here how to do it:
+That ESP8684 is not supported, and is not likely to be supported soon, as Riden has flashed its own proprietary firmware on it and has encrypted it (the SPI_BOOT_CRYPT_CNT eFuse = 0b111). Unless we get access to their encryption key, we will not be able to flash it.
+
+**But** you can make the dongle work by removing the ESP8684 and soldering a ESP-12F in place. Those WiFi modules can still be found. See here how to do it:
 
 ![Image](riden-retrograded-dongle-schema.png)
 
