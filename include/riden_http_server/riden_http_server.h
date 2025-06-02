@@ -41,6 +41,7 @@ class RidenHttpServer
     void finish_firmware_update_post();
     void handle_lxi_identification();
     void handle_not_found();
+    void handle_control_get();
 
     void handle_modbus_qps();
     void send_redirect_root();

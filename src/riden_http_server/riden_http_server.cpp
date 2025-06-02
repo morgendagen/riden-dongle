@@ -113,6 +113,7 @@ bool RidenHttpServer::begin()
     server.on("/psu/", HTTP_GET, std::bind(&RidenHttpServer::handle_psu_get, this));
     server.on("/config/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_config_get, this));
     server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
+    server.on("/control/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_control_get, this));
     server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
     server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
     server.on("/firmware/update/", HTTPMethod::HTTP_POST,
@@ -154,9 +155,9 @@ void RidenHttpServer::handle_root_get()
         send_services();
         send_connected_clients();
     } else {
-        server.sendContent(HTML_NO_CONNECTION_BODY);
+        server.sendContent_P(HTML_NO_CONNECTION_BODY);
     }
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 
@@ -253,9 +254,9 @@ void RidenHttpServer::handle_psu_get()
         server.sendContent("            </table>");
         server.sendContent("        </div>");
     } else {
-        server.sendContent(HTML_NO_CONNECTION_BODY);
+        server.sendContent_P(HTML_NO_CONNECTION_BODY);
     }
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 
@@ -263,7 +264,7 @@ void RidenHttpServer::handle_config_get()
 {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", HTML_HEADER);
-    send_as_chunks(HTML_CONFIG_BODY_1);
+    server.sendContent_P(HTML_CONFIG_BODY_1);
     String configured_tz = riden_config.get_timezone_name();
     for (int i = 0; i < riden_config.get_number_of_timezones(); i++) {
         const Timezone &timezone = riden_config.get_timezone(i);
@@ -274,7 +275,7 @@ void RidenHttpServer::handle_config_get()
             server.sendContent("<option value='" + name + "'>" + name + "</option>");
         }
     }
-    send_as_chunks(HTML_CONFIG_BODY_2);
+    server.sendContent_P(HTML_CONFIG_BODY_2);
     uint32_t uart_baudrate = riden_config.get_uart_baudrate();
     for (uint32_t option : uart_baudrates) {
         String option_string(option, 10);
@@ -284,8 +285,8 @@ void RidenHttpServer::handle_config_get()
             server.sendContent("<option value='" + option_string + "'>" + option_string + "</option>");
         }
     }
-    send_as_chunks(HTML_CONFIG_BODY_3);
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_CONFIG_BODY_3);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 
@@ -334,17 +335,17 @@ void RidenHttpServer::finish_firmware_update_post()
         server.client().setNoDelay(true);
         server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         server.send(200, "text/html", HTML_HEADER);
-        server.sendContent(HTML_DONGLE_UPDATE_1);
+        server.sendContent_P(HTML_DONGLE_UPDATE_1);
         server.sendContent(Update.getErrorString());
-        server.sendContent(HTML_DONGLE_UPDATE_2);
-        server.sendContent(HTML_FOOTER);
+        server.sendContent_P(HTML_DONGLE_UPDATE_2);
+        server.sendContent_P(HTML_FOOTER);
         server.sendContent("");
     } else {
         server.client().setNoDelay(true);
         server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         server.send(200, "text/html", HTML_HEADER);
-        server.sendContent(HTML_REBOOTING_DONGLE_UPDATE_BODY);
-        server.sendContent(HTML_FOOTER);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_UPDATE_BODY);
+        server.sendContent_P(HTML_FOOTER);
         server.sendContent("");
         delay(100);
         server.client().stop();
@@ -379,40 +380,33 @@ void RidenHttpServer::handle_reboot_dongle_get()
     if (config_arg == "true") {
         riden_config.set_config_portal_on_boot();
         riden_config.commit();
-        server.sendContent(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_1);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_1);
         server.sendContent(WiFi.getHostname());
-        server.sendContent(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_2);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_2);
     } else {
-        server.sendContent(HTML_REBOOTING_DONGLE_BODY);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_BODY);
     }
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
     delay(500);
     ESP.reset();
     delay(1000);
 }
 
-void RidenHttpServer::send_as_chunks(const char *str)
+
+void RidenHttpServer::handle_control_get(void)
 {
-    const size_t chunk_length = 1000;
-    size_t length = strlen(str);
-    for (size_t start_pos = 0; start_pos < length; start_pos += chunk_length) {
-        size_t end_pos = min(start_pos + chunk_length, length);
-        server.sendContent(&(str[start_pos]), end_pos - start_pos);
-        yield();
-    }
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", HTML_HEADER);
+    server.sendContent_P(HTML_CONTROL_BODY);
+    server.sendContent_P(HTML_FOOTER);
+    server.sendContent("");
 }
 
 void RidenHttpServer::send_redirect_root()
 {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-    server.send(200, "text/html", "<html>");
-    server.sendContent("<body>");
-    server.sendContent("<script>");
-    server.sendContent("  window.location = '/';");
-    server.sendContent("</script>");
-    server.sendContent("</body>");
-    server.sendContent("</html>");
+    server.send(200, "text/html", "<html><body><script>window.location = '/';</script></body></html>");
     server.sendContent("");
 }
 
@@ -577,7 +571,7 @@ void RidenHttpServer::handle_modbus_qps()
     server.sendContent("<p>Result = ");
     server.sendContent(String(qps, 1));
     server.sendContent(" queries/second</p>");
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 
