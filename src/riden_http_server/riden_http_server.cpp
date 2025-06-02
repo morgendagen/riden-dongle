@@ -114,6 +114,7 @@ bool RidenHttpServer::begin()
     server.on("/config/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_config_get, this));
     server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
     server.on("/control/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_control_get, this));
+    server.on("/status", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_status_get, this));
     server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
     server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
     server.on("/firmware/update/", HTTPMethod::HTTP_POST,
@@ -400,6 +401,37 @@ void RidenHttpServer::handle_control_get(void)
     server.send(200, "text/html", HTML_HEADER);
     server.sendContent_P(HTML_CONTROL_BODY);
     server.sendContent_P(HTML_FOOTER);
+    server.sendContent("");
+}
+
+void RidenHttpServer::handle_status_get(void)
+{
+    AllValues all_values;
+
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "application/json", "");
+     if (modbus.is_connected()) {
+        String s = "{";
+        bool b;
+        double f;
+        if (!modbus.get_output_on(b)) { b = FALSE; }
+        s += "\"out_on\": " + String(b ? "true" : "false") + ",";
+        if (!modbus.get_voltage_set(f)) { f = 0.0; }
+        s += "\"set_v\": " + String(f, 3) + ",";
+        if (!modbus.get_current_set(f)) { f = 0.0; }
+        s += "\"set_c\": " + String(f, 3) + ",";
+        if (!modbus.get_voltage_out(f)) { f = 0.0; }
+        s += "\"out_v\": " + String(f, 3) + ",";
+        if (!modbus.get_current_out(f)) { f = 0.0; }
+        s += "\"out_c\": " + String(f, 3) + ",";
+        if (!modbus.is_battery_mode(b)) { b = FALSE; }
+        s += "\"batt_mode\": " + String(b ? "true" : "false") + ",";
+        OutputMode output_mode;
+        if (!modbus.get_output_mode(output_mode)) { output_mode = OutputMode::CONSTANT_VOLTAGE; }
+        s += "\"cvmode\": " + String(output_mode == OutputMode::CONSTANT_VOLTAGE ? "true" : "false");
+        s += "}";
+        server.sendContent(s);
+    }
     server.sendContent("");
 }
 
