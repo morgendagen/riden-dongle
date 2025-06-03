@@ -115,11 +115,16 @@ String RidenModbus::get_type()
     return type;
 }
 
-bool RidenModbus::get_all_values(AllValues &all_values)
+bool RidenModbus::get_all_values(AllValues &all_values, bool subset)
 {
     // Reading all registers at once fails silently, so
     // we read 20 registers at a time instead.
+
     Register last_reg = Register::M9_OCP;
+    if (subset) {
+        // If we only want a subset, we can read less registers.
+        last_reg = Register::SUBSET_END;
+    }
     int total_nof_regs = (+last_reg) + 1;
     uint16_t values[total_nof_regs];
     for (int first_reg_to_read = 0; first_reg_to_read < total_nof_regs; first_reg_to_read += 20) {
@@ -148,6 +153,11 @@ bool RidenModbus::get_all_values(AllValues &all_values)
     all_values.probe_temperature_fahrenheit = values_to_temperature(&(values[+Register::ProbeTemperatureFarhenheit_Sign]));
     all_values.ah = values_to_ah(&(values[+Register::AH_H]));
     all_values.wh = values_to_wh(&(values[+Register::WH_H]));
+
+    if (subset) {
+        // If we only want a subset, we can return early.
+        return true;
+    }
     values_to_tm(all_values.clock, &(values[+Register::Year]));
     all_values.is_take_ok = values[+Register::TakeOk] != 0;
     all_values.is_take_out = values[+Register::TakeOut] != 0;

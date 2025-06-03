@@ -94,7 +94,7 @@ class RidenModbus
     bool is_connected();
 
     String get_type();
-    bool get_all_values(AllValues &all_values);
+    bool get_all_values(AllValues &all_values, bool subset = false);
 
     bool get_id(uint16_t &id);
     bool get_serial_number(uint32_t &serial_number);

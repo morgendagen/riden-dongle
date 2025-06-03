@@ -44,6 +44,7 @@ enum class Register {
     AH_L = 39,
     WH_H = 40,
     WH_L = 41,
+    SUBSET_END = 42, // Used to indicate the end of a subset of registers
     // Unused/Unknown 42-47
     // Date
     Year = 48,
