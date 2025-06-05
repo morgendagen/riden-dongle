@@ -422,12 +422,16 @@ void RidenHttpServer::handle_status_get(void)
         s += ",\"cvmode\": " + String(all_values.output_mode == OutputMode::CONSTANT_VOLTAGE ? "true" : "false");
         s += ",\"prot\": \"" + protection_to_string(all_values.protection) + "\"";
         s += ",\"batt_v\": " + String(all_values.voltage_battery, 3);
-        if (all_values.probe_temperature_celsius < 0) {
+        if (all_values.probe_temperature_celsius < -50.0) {
             s += ",\"ext_t_c\": null";
         } else {
             s += ",\"ext_t_c\": " + String(all_values.probe_temperature_celsius, 2);
         }
         s += ",\"int_t_c\": " + String(all_values.system_temperature_celsius, 2);
+        s += ",\"ah\": " + String(all_values.ah, 3);
+        s += ",\"wh\": " + String(all_values.wh, 3);
+        s += ",\"max_v\": " + String(modbus.get_max_voltage(), 3);
+        s += ",\"max_c\": " + String(modbus.get_max_current(), 3);
         s += "}";
         server.send(200, "application/json", s);
     } else {
