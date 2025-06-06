@@ -411,6 +411,7 @@ void RidenHttpServer::handle_status_get(void)
 {
     AllValues all_values;
     // get a subset of the values, reading in bulk to be fast
+    // Make sure this is below 800ms, because otherwise the graph will suffer
     if (modbus.is_connected() && modbus.get_all_values(all_values, true)) {
         String s = "{";
         s += "\"out_on\": " + String(all_values.output_on ? "true" : "false");
