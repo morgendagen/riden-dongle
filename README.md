@@ -30,7 +30,7 @@ The firmware has been tested with various tools and libraries:
 - SCPI control
   - via raw socket (VISA string: `TCPIP::<ip address>::5025::SOCKET`)
   - and via vxi-11 (VISA string: `TCPIP::<ip address>::INSTR`).
-- Web interface to configure the dongle and update firmware.
+- Web interface to configure the dongle, update the firmware, and remote control, with graph functions.
 - Automatically set power supply clock based on NTP.
 - mDNS advertising.
 - Handles approximately 65 queries/second using Modbus TCP or raw socket SCPI
@@ -77,7 +77,6 @@ When using the raw sockets (`TCPIP::<ip address>::5025::SOCKET`), you must, like
 Also, be aware that when writing many commands to the device, the network layers and the device will queue them up. As a result, there can be a significant delay between the moment your client issues a command, and the moment the device handles the command. If you do not want that, insert a sleep of more than 150ms after each write command, forcing the network to send 1 command at a time. (the minimum delay depends on the configuration of your platform)
 
 VXI-11 does not have this problem, since every command requires an ACK.
-
 
 ## Hardware Preparations
 
@@ -229,8 +228,27 @@ to use OTA update instead of having to remove
 the module from the power supply and connecting
 it to a computer.
 
-From the `Configure` page you can upload a
+From the `Configure` web page you can upload a
 new firmware binary.
+
+
+## Remote control via the Web interface
+
+The `Control` web page allows remote control over:
+
+- Voltage and Current setting
+- Output On/Off
+
+It also allows reading various values:
+
+- Output values
+- CV/CC mode, OVP/OCP protection
+- temperatures
+- ...
+
+The output values are graphed (updated every second), and will allow different time scales and zooming in.
+
+<kbd>![Image](configpage.png)</kbd>
 
 
 ## Limitations
@@ -266,7 +284,9 @@ the register matches the language set from the front panel.
 
 ### Keypad
 
-It is not possible to control keypad lock.
+It is not possible to control the keypad lock.
+
+Note that when you have the Riden firmware, while you use remote control or the web server (and especially the Control page), the keypad is locked automatically. That lock will be released a couple of seconds after the last use.
 
 
 ### Modbus Register 69 (Buzzer Enabled)

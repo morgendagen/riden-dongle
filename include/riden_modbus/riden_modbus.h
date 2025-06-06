@@ -94,7 +94,7 @@ class RidenModbus
     bool is_connected();
 
     String get_type();
-    bool get_all_values(AllValues &all_values);
+    bool get_all_values(AllValues &all_values, bool subset = false);
 
     bool get_id(uint16_t &id);
     bool get_serial_number(uint32_t &serial_number);
@@ -277,6 +277,9 @@ class RidenModbus
     bool write_holding_register(const Register reg, const uint16_t value);
     bool write_holding_registers(const Register reg, uint16_t *value, uint16_t numregs = 1);
 
+    double get_max_voltage() { return v_max; }
+    double get_max_current() { return i_max; }
+
   private:
     ModbusRTU modbus;
     unsigned long timeout = 500; // milliseconds
@@ -287,6 +290,8 @@ class RidenModbus
     double i_multi = 100.0;
     double p_multi = 100.0;
     double v_in_multi = 100.0;
+    double v_max = 61.0;
+    double i_max = 30.1;
 
     /**
      *  Wait until no transaction is active or timeout.

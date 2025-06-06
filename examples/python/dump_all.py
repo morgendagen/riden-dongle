@@ -12,9 +12,16 @@ except ImportError:
     print("To install: python3 -m pip install pyModbusTCP")
     sys.exit(1)
 
-RD_HOST = "rd6006-12345678.local"
+RD_HOST = "192.168.4.177"
 
 c = ModbusClient(host=RD_HOST, port=502, unit_id=1, auto_open=True, timeout=2)
-for a in range(0,200,20):
-    regs = c.read_holding_registers(a, reg_nb=20)
-    print(regs)
+nr = 16
+print("address;value")
+for a in range(0, 1023, nr):
+    regs = c.read_holding_registers(a, reg_nb=nr)
+    for x in range(0, nr):
+        if (regs is not None) and (x < len(regs)):
+            v = regs[x]
+        else:
+            v = None
+        print(f"{a + x};{v}")

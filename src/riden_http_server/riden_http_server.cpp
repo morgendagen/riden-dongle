@@ -113,6 +113,11 @@ bool RidenHttpServer::begin()
     server.on("/psu/", HTTP_GET, std::bind(&RidenHttpServer::handle_psu_get, this));
     server.on("/config/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_config_get, this));
     server.on("/config/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_config_post, this));
+    server.on("/control/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_control_get, this));
+    server.on("/status", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_status_get, this));
+    server.on("/set_i", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_set_i, this));
+    server.on("/set_v", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_set_v, this));
+    server.on("/toggle_out", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_toggle_out, this));
     server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
     server.on("/reboot/dongle/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_reboot_dongle_get, this));
     server.on("/firmware/update/", HTTPMethod::HTTP_POST,
@@ -154,9 +159,9 @@ void RidenHttpServer::handle_root_get()
         send_services();
         send_connected_clients();
     } else {
-        server.sendContent(HTML_NO_CONNECTION_BODY);
+        server.sendContent_P(HTML_NO_CONNECTION_BODY);
     }
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 
@@ -253,9 +258,9 @@ void RidenHttpServer::handle_psu_get()
         server.sendContent("            </table>");
         server.sendContent("        </div>");
     } else {
-        server.sendContent(HTML_NO_CONNECTION_BODY);
+        server.sendContent_P(HTML_NO_CONNECTION_BODY);
     }
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 
@@ -263,7 +268,7 @@ void RidenHttpServer::handle_config_get()
 {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", HTML_HEADER);
-    send_as_chunks(HTML_CONFIG_BODY_1);
+    server.sendContent_P(HTML_CONFIG_BODY_1);
     String configured_tz = riden_config.get_timezone_name();
     for (int i = 0; i < riden_config.get_number_of_timezones(); i++) {
         const Timezone &timezone = riden_config.get_timezone(i);
@@ -274,7 +279,7 @@ void RidenHttpServer::handle_config_get()
             server.sendContent("<option value='" + name + "'>" + name + "</option>");
         }
     }
-    send_as_chunks(HTML_CONFIG_BODY_2);
+    server.sendContent_P(HTML_CONFIG_BODY_2);
     uint32_t uart_baudrate = riden_config.get_uart_baudrate();
     for (uint32_t option : uart_baudrates) {
         String option_string(option, 10);
@@ -284,8 +289,8 @@ void RidenHttpServer::handle_config_get()
             server.sendContent("<option value='" + option_string + "'>" + option_string + "</option>");
         }
     }
-    send_as_chunks(HTML_CONFIG_BODY_3);
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_CONFIG_BODY_3);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 
@@ -334,17 +339,17 @@ void RidenHttpServer::finish_firmware_update_post()
         server.client().setNoDelay(true);
         server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         server.send(200, "text/html", HTML_HEADER);
-        server.sendContent(HTML_DONGLE_UPDATE_1);
+        server.sendContent_P(HTML_DONGLE_UPDATE_1);
         server.sendContent(Update.getErrorString());
-        server.sendContent(HTML_DONGLE_UPDATE_2);
-        server.sendContent(HTML_FOOTER);
+        server.sendContent_P(HTML_DONGLE_UPDATE_2);
+        server.sendContent_P(HTML_FOOTER);
         server.sendContent("");
     } else {
         server.client().setNoDelay(true);
         server.setContentLength(CONTENT_LENGTH_UNKNOWN);
         server.send(200, "text/html", HTML_HEADER);
-        server.sendContent(HTML_REBOOTING_DONGLE_UPDATE_BODY);
-        server.sendContent(HTML_FOOTER);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_UPDATE_BODY);
+        server.sendContent_P(HTML_FOOTER);
         server.sendContent("");
         delay(100);
         server.client().stop();
@@ -379,40 +384,107 @@ void RidenHttpServer::handle_reboot_dongle_get()
     if (config_arg == "true") {
         riden_config.set_config_portal_on_boot();
         riden_config.commit();
-        server.sendContent(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_1);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_1);
         server.sendContent(WiFi.getHostname());
-        server.sendContent(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_2);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_CONFIG_PORTAL_BODY_2);
     } else {
-        server.sendContent(HTML_REBOOTING_DONGLE_BODY);
+        server.sendContent_P(HTML_REBOOTING_DONGLE_BODY);
     }
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
     delay(500);
     ESP.reset();
     delay(1000);
 }
 
-void RidenHttpServer::send_as_chunks(const char *str)
+
+void RidenHttpServer::handle_control_get(void)
 {
-    const size_t chunk_length = 1000;
-    size_t length = strlen(str);
-    for (size_t start_pos = 0; start_pos < length; start_pos += chunk_length) {
-        size_t end_pos = min(start_pos + chunk_length, length);
-        server.sendContent(&(str[start_pos]), end_pos - start_pos);
-        yield();
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", HTML_HEADER);
+    server.sendContent_P(HTML_CONTROL_BODY);
+    server.sendContent_P(HTML_FOOTER);
+    server.sendContent("");
+}
+
+void RidenHttpServer::handle_status_get(void)
+{
+    AllValues all_values;
+    // get a subset of the values, reading in bulk to be fast
+    // Make sure this is below 800ms, because otherwise the graph will suffer
+    if (modbus.is_connected() && modbus.get_all_values(all_values, true)) {
+        String s = "{";
+        s += "\"out_on\": " + String(all_values.output_on ? "true" : "false");
+        s += ",\"set_v\": " + String(all_values.voltage_set, 3);
+        s += ",\"set_c\": " + String(all_values.current_set, 3);
+        s += ",\"out_v\": " + String(all_values.voltage_out, 3);
+        s += ",\"out_c\": " + String(all_values.current_out, 3);
+        s += ",\"batt_mode\": " + String(all_values.is_battery_mode ? "true" : "false");
+        s += ",\"cvmode\": " + String(all_values.output_mode == OutputMode::CONSTANT_VOLTAGE ? "true" : "false");
+        s += ",\"prot\": \"" + protection_to_string(all_values.protection) + "\"";
+        s += ",\"batt_v\": " + String(all_values.voltage_battery, 3);
+        if (all_values.probe_temperature_celsius < -50.0) {
+            s += ",\"ext_t_c\": null";
+        } else {
+            s += ",\"ext_t_c\": " + String(all_values.probe_temperature_celsius, 2);
+        }
+        s += ",\"int_t_c\": " + String(all_values.system_temperature_celsius, 2);
+        s += ",\"ah\": " + String(all_values.ah, 3);
+        s += ",\"wh\": " + String(all_values.wh, 3);
+        s += ",\"max_v\": " + String(modbus.get_max_voltage(), 3);
+        s += ",\"max_c\": " + String(modbus.get_max_current(), 3);
+        s += "}";
+        server.send(200, "application/json", s);
+    } else {
+        server.send(500, "text/plain", "Not connected to power supply");
+    }
+    server.sendContent("");
+}
+
+void RidenHttpServer::handle_set_i() 
+{
+    String s = server.arg("plain");
+    double v = std::strtod(s.c_str(), nullptr);
+    if (modbus.is_connected() && modbus.set_current_set(v)) {
+        server.send(200, "text/plain", "OK");
+    } else {
+        server.send(500, "text/plain", "Failed to set");
+    }
+}
+
+void RidenHttpServer::handle_set_v()
+{
+    String s = server.arg("plain");
+    double v = std::strtod(s.c_str(), nullptr);
+    if (modbus.is_connected() && modbus.set_voltage_set(v)) {
+        server.send(200, "text/plain", "OK");
+    } else {
+        server.send(500, "text/plain", "Failed to set");
+    }
+}
+
+void RidenHttpServer::handle_toggle_out()
+{
+    if (modbus.is_connected()) {
+        bool get_output_on;
+        if (!modbus.get_output_on(get_output_on)) {
+            get_output_on = false;
+        }
+        if (modbus.set_output_on(!get_output_on)) {
+            // and reply with full data set
+            handle_status_get();
+        } else {
+            server.send(500, "text/plain", "Failed to toggle output");
+        }
+    } else {
+        server.send(500, "text/plain", "Not connected to power supply");
     }
 }
 
 void RidenHttpServer::send_redirect_root()
 {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-    server.send(200, "text/html", "<html>");
-    server.sendContent("<body>");
-    server.sendContent("<script>");
-    server.sendContent("  window.location = '/';");
-    server.sendContent("</script>");
-    server.sendContent("</body>");
-    server.sendContent("</html>");
+    server.send(200, "text/html", "<html><body><script>window.location = '/';</script></body></html>");
     server.sendContent("");
 }
 
@@ -577,7 +649,7 @@ void RidenHttpServer::handle_modbus_qps()
     server.sendContent("<p>Result = ");
     server.sendContent(String(qps, 1));
     server.sendContent(" queries/second</p>");
-    server.sendContent(HTML_FOOTER);
+    server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
 }
 

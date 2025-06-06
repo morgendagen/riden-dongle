@@ -59,27 +59,36 @@ bool RidenModbus::begin()
     }
     initialized = false;
 
+    this->v_max = 60.1; // Default max voltage
+    this->i_max = 6.0; // Default max current
     if (60180 <= id && id <= 60189) {
         this->type = "RD6018";
+        this->i_max = 18.1;
     } else if (60120 <= id && id <= 60124) {
         this->type = "RD6012";
+        this->i_max = 12.1;
     } else if (60125 <= id && id <= 60129) {
         this->type = "RD6012P";
         this->v_multi = 1000;
         this->p_multi = 1000;
         // i_multi is not constant!
+        this->i_max = 12.1;
     } else if (60060 <= id && id <= 60064) {
         this->type = "RD6006";
         this->i_multi = 1000;
+        this->i_max = 6.0; 
     } else if (id == 60065) {
         this->type = "RD6006P";
         this->v_multi = 1000;
         this->i_multi = 10000;
         this->p_multi = 1000;
+        this->i_max = 6.0; 
     } else if (id == 60301) {
         this->type = "RD6030";
+        this->i_max = 30.1; 
     } else if (60241 <= id) {
         this->type = "RD6024";
+        this->i_max = 24.1; 
     } else {
         LOG_LN("Failed decoding power supply id");
         return false;
@@ -115,11 +124,16 @@ String RidenModbus::get_type()
     return type;
 }
 
-bool RidenModbus::get_all_values(AllValues &all_values)
+bool RidenModbus::get_all_values(AllValues &all_values, bool subset)
 {
     // Reading all registers at once fails silently, so
     // we read 20 registers at a time instead.
+
     Register last_reg = Register::M9_OCP;
+    if (subset) {
+        // If we only want a subset, we can read less registers.
+        last_reg = Register::SUBSET_END;
+    }
     int total_nof_regs = (+last_reg) + 1;
     uint16_t values[total_nof_regs];
     for (int first_reg_to_read = 0; first_reg_to_read < total_nof_regs; first_reg_to_read += 20) {
@@ -148,6 +162,11 @@ bool RidenModbus::get_all_values(AllValues &all_values)
     all_values.probe_temperature_fahrenheit = values_to_temperature(&(values[+Register::ProbeTemperatureFarhenheit_Sign]));
     all_values.ah = values_to_ah(&(values[+Register::AH_H]));
     all_values.wh = values_to_wh(&(values[+Register::WH_H]));
+
+    if (subset) {
+        // If we only want a subset, we can return early.
+        return true;
+    }
     values_to_tm(all_values.clock, &(values[+Register::Year]));
     all_values.is_take_ok = values[+Register::TakeOk] != 0;
     all_values.is_take_out = values[+Register::TakeOut] != 0;
