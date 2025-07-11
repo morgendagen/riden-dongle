@@ -3,10 +3,22 @@
 This is an alternative firmware for the Riden WiFi module that
 provides Modbus TCP and SCPI support as well as a web interface.
 
+It supports the following Riden power supplies:
+
+- RD6006 (might not work on the earlier china only versions, but supports the regular version)
+- RD6012
+- RD6018
+- RD6024
+- RD6030
+- RD6006P
+- RD6012P
+
+The following is not yet integrated, as it is very new.
+
+- RD6018P
+
 The firmware has been tested with various tools and libraries:
 
-- Riden Hardware
-  - RD6006, RD6012, RD6030
 - Riden Firmware
   - Riden v1.28
   - Riden v1.41
