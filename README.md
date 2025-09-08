@@ -172,14 +172,14 @@ and wait for the firmware to be flashed.
 
 Before re-inserting the module into your power supply,
 it may be a good idea to make the necessary configuration
-changes. You need to select `TTL` as the communications mode,
-and 9600 as the speed.
+changes. You need to select `TTL` as the UART Interface mode,
+9600 as the speed/UART baudrate, and (modbus) Address as 1 (the default).
 
 Re-insert the module and power up the power supply.
 
 The module will begin to flash, first slowly and then
 faster. If it starts flashing really fast (5 flashes
-per second), you propably misconfigured the power supply.
+per second), you probably misconfigured the power supply.
 Double-check, and if you are still having issues, add
 an issue to the Github repository.
 
@@ -199,6 +199,15 @@ after a short while, and eventually stop. You should now
 be able to connect to the dongle at
 http://RDxxxx-ssssssss.local.
 
+## Power Supply Configuration requirements
+
+Make sure that you have set
+
+* the 'UART Interface' setting to 'TTL' or 'TTL+EN'
+* the 'UART Baudrate' to the same speed as you have set the dongle. 9600 is good for starters, but PSUs with Unisoft custom firmware can easily handle 115200
+* the 'Address' setting to '1'
+
+If you have the Unisoft custom firmware, the 'Server IP' is not used, as the dongle firmware will take care of that now.
 
 ## Using lxi-tools to Verify Installation
 
