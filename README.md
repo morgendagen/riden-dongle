@@ -24,7 +24,7 @@ The firmware has been tested with various tools and libraries:
   - Riden v1.41
   - Riden v1.47 (6030)
   - Unisoft v1.41.1k (6006)
-  - Unisoft V1.36.1k (6012)
+  - Unisoft V1.37.1p (6012)
 - Modbus TCP
   - [Python pyModbusTCP library](https://pypi.org/project/pyModbusTCP/)
   - [Python pymodbus library](https://pypi.org/project/pymodbus/)
@@ -303,15 +303,15 @@ Note that when you have the Riden firmware, while you use remote control or the 
 
 ### Modbus Register 69 (Buzzer Enabled)
 
-Some power supply firmwares (UniSoft RD6006 V1.41.1k, amongst others)
+Older versions of the UniSoft custom firmware, before "1p", like RD6006 V1.41.1k,
 return an inverted value for modbus register 69 (buzzer enabled).
-Riden RD6006 firmware V1.41 does _not_ exhibit this issue.
 
 The outcome is that, depending on the Riden firmware installed,
 writing the register works as expected, but reading it back may
 produce an incorrect result. Likewise the SCPI command
 `SYST:BEEP:STATE?` may also return an incorrect value.
 
+Riden standard firmware, and Unisoft "1p" versions and up, do _not_ exhibit this issue.
 
 ## Credits
 
