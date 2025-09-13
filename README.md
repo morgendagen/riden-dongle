@@ -3,7 +3,7 @@
 This is an alternative firmware for the Riden WiFi module that
 provides Modbus TCP and SCPI support as well as a web interface.
 
-It is geared towards easy remote control via both compatibility with standard lab automation tools, plus control and viewing of the essentials via an on-board web interface.
+It is geared towards easy remote control via both compatibility with standard lab automation tools, plus control and viewing of the essentials via its web interface.
 
 It is not compatible with Riden's mobile app.
 
