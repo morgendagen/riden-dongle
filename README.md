@@ -3,6 +3,10 @@
 This is an alternative firmware for the Riden WiFi module that
 provides Modbus TCP and SCPI support as well as a web interface.
 
+It is geared towards easy remote control via both compatibility with standard lab automation tools, plus control and viewing of the essentials via its web interface.
+
+It is not compatible with Riden's mobile app.
+
 It supports the following Riden power supplies:
 
 - RD6006 (might not work on the earlier china only versions, but supports the regular version)
@@ -13,7 +17,7 @@ It supports the following Riden power supplies:
 - RD6006P
 - RD6012P
 
-The following is not yet integrated, as it is very new.
+The following is not yet integrated, as it is very new. If anyone has that model and can help testing, please get in touch.
 
 - RD6018P
 
@@ -24,7 +28,7 @@ The firmware has been tested with various tools and libraries:
   - Riden v1.41
   - Riden v1.47 (6030)
   - Unisoft v1.41.1k (6006)
-  - Unisoft V1.37.1p (6012)
+  - Unisoft v1.37.1p (6012)
 - Modbus TCP
   - [Python pyModbusTCP library](https://pypi.org/project/pyModbusTCP/)
   - [Python pymodbus library](https://pypi.org/project/pymodbus/)
@@ -48,23 +52,19 @@ The firmware has been tested with various tools and libraries:
 - Handles approximately 65 queries/second using Modbus TCP or raw socket SCPI
   (tested using Unisoft v1.41.1k, UART baudrate set at 921600).
 
-
 ## Warning
 
 - When flashing the Riden WiFi module you _will_ erase the existing firmware.
 - The firmware provided in this repository comes with no warranty.
 
-
 ## Query Performance
 
 The regular Riden power supply firmware is considerably slower than UniSoft,
-handling less than 10 queries/second. It is probably best to keep the UART baud rate at 19200 for the regular Riden power supply firmware. With UniSoft's firmware you can go significantly higher.
-
+handling less than 10 queries/second. It is probably best to keep the UART baud rate at or below 19200 for the regular Riden power supply firmware. With UniSoft's firmware you can go significantly higher.
 
 ## VISA communication directives
 
 An example test program can be found under [/scripts/test_pyvisa.py](/scripts/test_pyvisa.py)
-
 
 ### VXI-11
 
@@ -73,7 +73,6 @@ The VXI-11 channel (`TCPIP::<ip address>::INSTR`) is auto discoverable via mDNS,
 While you use the VXI server, the raw socket server is disabled.
 
 Note that when you use the web interface to kill a VXI-11 client, it will not properly inform the client. It will just kill the connection.
-
 
 ### Raw sockets
 
@@ -88,26 +87,27 @@ When using the raw sockets (`TCPIP::<ip address>::5025::SOCKET`), you must, like
 
 Also, be aware that when writing many commands to the device, the network layers and the device will queue them up. As a result, there can be a significant delay between the moment your client issues a command, and the moment the device handles the command. If you do not want that, insert a sleep of more than 150ms after each write command, forcing the network to send 1 command at a time. (the minimum delay depends on the configuration of your platform)
 
-VXI-11 does not have this problem, since every command requires an ACK.
+VXI-11 does not have this problem, since the commands are handled synchronously, and every command requires an ACK.
 
 ## Hardware Preparations
 
-> There are various dongles available. This firmware is at this moment only compatible with ESP-12F based modules. The newer dongles use an ESP8684, but it is possible to do a retrofit with an ESP-12F. See below.
+Note:
+> There are various dongles available. This firmware is at this moment only compatible with ESP-12F based modules. The newer dongles use an ESP8684, but it is possible to do a retrofit with an ESP-12F. See below.*
 
-You will need to make some changes. The 2 most important being:
+You will need to make some changes to the dongle. The 2 most important being:
 
-- pull EN high, as the TTL mode of the power supply does not do that, and remove or cut the pin from the header.
-- program the dongle
+- do the adaptations listed below, depending on your dongle.
+- program the dongle.
 
 Either you solder on the needed components and pins directly to the WiFi module, either you put a small PCB on top of the ESP metal housing (do not cover the antenna!) with the required resistors and maybe buttons, and connect that PCB to the WiFi module.
 
-Whatever you use, in order to flash the device, you will need the following:
+Whatever you use, in order to program the device, you will need the following:
 
 - power of course: 5V + GND (on the existing header).
 - connect your serial link to GND, RX, TX (on the existing header)
-- pull EN to 3V3 all the time via a resistor (10k). Take the 3V3 from the module, do not use the header, as some dongles do not have the 3V3 pin on the header connected.
+- pull EN to 3V3 all the time via a resistor (10k). Take the 3V3 from the insides of the module, and not from the header, as some dongles do not have the 3V3 header pin connected.
 - during boot, connect GPIO0 (aka PGM) to GND for a short period, and after that, pull it to 3V3 via a resistor (10k). A push button may be helpful here.
-- not strictly needed, but helpful: a reset button connected to RST/RESET. If used, programming will be easier, as there is no need for power cycling to do programming. Push both RESET and PGM, let go of RESET, and then let go of PGM.
+- not strictly needed, but helpful: a reset button connected to RST/RESET and GND. If used, programming will be easier, as there is no need for power cycling to do programming. To initiate programming, push both RESET and PGM, let go of RESET, and then let go of PGM.
 
 _Dongle with ESP-12F:_
 
@@ -145,7 +145,6 @@ Firmware files will be
 [released on GitHub](https://github.com/morgendagen/riden-dongle/releases)
 as part of the repository.
 
-
 ## Compiling the Firmware
 
 If you want to compile, you will need [PlatformIO](https://platformio.org/) in order to
@@ -153,7 +152,6 @@ compile the firmware.
 
 No configuration is necessary; simply execute `pio run` and wait.
 The firmware is located at `.pio/build/esp12e/firmware.bin`.
-
 
 ## Flashing the Firmware
 
@@ -166,7 +164,9 @@ You can use multiple tools to flash the firmware. The most well known are:
 
 Example with PlatformIO:
 
-   pio run -t upload --upload-port <ESP12F serial port>
+```bash
+pio run -t upload --upload-port <ESP12F serial port>
+```
 
 and wait for the firmware to be flashed.
 
@@ -203,9 +203,9 @@ http://RDxxxx-ssssssss.local.
 
 Make sure that you have set
 
-* the 'UART Interface' setting to 'TTL' or 'TTL+EN'
-* the 'UART Baudrate' to the same speed as you have set the dongle. 9600 is good for starters, but PSUs with Unisoft custom firmware can easily handle 115200
-* the 'Address' setting to '1'
+- the 'UART Interface' setting to 'TTL' or 'TTL+EN'
+- the 'UART Baudrate' to the same speed as you have set the dongle. 9600 is good for starters, but PSUs with Unisoft custom firmware can easily handle 115200
+- the 'Address' setting to '1'
 
 If you have the Unisoft custom firmware, the 'Server IP' is not used, as the dongle firmware will take care of that now.
 
@@ -213,7 +213,9 @@ If you have the Unisoft custom firmware, the 'Server IP' is not used, as the don
 
 Execute the command
 
-    lxi discover -m
+```bash
+lxi discover -m
+```
 
 to get a list of discovered SCPI devices on the network.
 This firmware sneakily advertised `lxi` support in order
@@ -221,39 +223,43 @@ for lxi-tools to recognise it.
 
 Execute the command
 
-    lxi scpi -a RDxxxx-ssssssss.local -r "*IDN?"
+```bash
+lxi scpi -a RDxxxx-ssssssss.local -r "*IDN?"
+```
 
 to retrieve the SCPI identification string containing
 power supply model, and firmware version.
 
 Execute the command
 
-    lxi scpi -a RDxxxx-ssssssss.local -r "VOLT?"
+```bash
+lxi scpi -a RDxxxx-ssssssss.local -r "VOLT?"
+```
 
 to retrieve the currently set voltage.
 
 Invoke
 
-    lxi scpi -a RDxxxx-ssssssss.local -r "VOLT 3.3"
+```bash
+lxi scpi -a RDxxxx-ssssssss.local -r "VOLT 3.3"
+```
 
 to set the voltage to 3.3V
 
 A description of the implemented commands is
 available in [SCPI_COMMANDS.md](SCPI_COMMANDS.md).
 
+## The web interface
 
-## OTA firmware update
+The web interface is available under http://RDxxxx-ssssssss.local (see above). When using from a small screen (ex: mobile), it is best to use landscape mode.
 
-In order to update the firmware, you may prefer
-to use OTA update instead of having to remove
-the module from the power supply and connecting
-it to a computer.
+### Home page
 
-From the `Configure` web page you can upload a
-new firmware binary.
+The `Home` page shows general information about the PSU and information regarding remote connectivity and active remote connections.
 
+The `Details` page shows more detailed information about the PSU status and configuration. In essence, it shows all information that can be read from the PSU, like voltage, current, and power settings and readings, but also the presets and the calibration data.
 
-## Remote control via the Web interface
+### Remote control
 
 The `Control` web page allows remote control over:
 
@@ -271,6 +277,14 @@ The output values are graphed (updated every second), and will allow different t
 
 <kbd>![Image](configpage.png)</kbd>
 
+### Configuration
+
+The `Config` web page allows configuration of the time settings, allows rebooting of the PSU or the module, but also allows **OTA firmware updates** of the WiFi module (not of the PSU). 
+
+You may prefer
+to use OTA update instead of having to remove
+the module from the power supply and connecting
+it to a computer.
 
 ## Limitations
 
@@ -278,7 +292,6 @@ The Riden power supply firmware has some quirks as described
 below. The firmware provided here err towards caution, and
 does not implement functionality that is known to be
 unreliable.
-
 
 ### Currently Active OVP and OCP Values
 
@@ -288,7 +301,6 @@ are set via the front panel, M0 does reflect the new values.
 
 Therefore I have decided NOT to support `*SAV`. `*RCL` is implemented.
 
-
 ### Preset Register
 
 The Preset register (19) only reflects the active preset if
@@ -296,19 +308,16 @@ changed via the modbus interface. It is not updated if a preset
 is selected using the front panel. Therefore it is currently not
 possible to retrieve the selected preset.
 
-
 ### Language Selection
 
 Only 0 and 1 are recognised when setting the Language register. Reading
 the register matches the language set from the front panel.
-
 
 ### Keypad
 
 It is not possible to control the keypad lock.
 
 Note that when you have the Riden firmware, while you use remote control or the web server (and especially the Control page), the keypad is locked automatically. That lock will be released a couple of seconds after the last use.
-
 
 ### Modbus Register 69 (Buzzer Enabled)
 
