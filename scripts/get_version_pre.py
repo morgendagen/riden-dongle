@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-Import("env", "projenv")
+Import("env")
 import os
 
 # Get the version number from the build environment.
@@ -15,10 +15,7 @@ if firmware_version == "":
 
 print(f'Using version {firmware_version} for the build')
 
-# Append the version to the build defines so it gets baked into the firmware
-projenv.Append(CPPDEFINES=[
-    f'BUILD_VERSION={firmware_version}',
-])
+env.Append(FIRMWARE_VERSION=f'{firmware_version}')
 
 if firmware_version != "DEVELOPMENT":
     # Set the output filename to the name of the board and the version
