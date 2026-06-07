@@ -61,8 +61,14 @@ bool RidenModbus::begin()
 
     this->v_max = 60.1; // Default max voltage
     this->i_max = 6.0; // Default max current
-    if (60180 <= id && id <= 60189) {
+    if (60180 <= id && id <= 60184) {
         this->type = "RD6018";
+        this->i_max = 18.1;
+    } else if (60185 <= id && id <= 60189) {
+        this->type = "RD6018P";
+        this->v_multi = 1000;
+        this->p_multi = 1000;
+        this->i_multi = 1000;
         this->i_max = 18.1;
     } else if (60120 <= id && id <= 60124) {
         this->type = "RD6012";
