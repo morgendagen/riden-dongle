@@ -15,8 +15,8 @@ It supports the following Riden power supplies:
 - RD6024
 - RD6030
 - RD6006P
-- RD6012P
-- RD6018P
+- RD6012P (testers required, we are missing info on the current ranges)
+- RD6018P (testers required, we are missing info on the current ranges)
 
 The firmware has been tested with various tools and libraries:
 
