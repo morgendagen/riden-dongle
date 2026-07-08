@@ -36,6 +36,11 @@ struct Preset {
     double over_current_protection;
 };
 
+struct CurrentRange {
+    double multiplier; // i_multi divisor for this range (0 = unused)
+    const char *label; // UI label, e.g. "6A" / "12A"
+};
+
 struct Calibration {
     uint16_t V_OUT_ZERO;
     uint16_t V_OUT_SCALE;
@@ -134,6 +139,11 @@ class RidenModbus
     bool set_preset(const uint8_t index);
 
     bool get_current_range(uint16_t &current_range);
+    bool set_current_range(const uint16_t current_range);
+    bool supports_current_ranges() { return i_multi_ranges[0].multiplier != 0.0; }
+    const char *get_current_range_label(uint8_t i) { return i_multi_ranges[i & 1].label; }
+
+    uint8_t get_precision() { return precision; }
 
     bool is_battery_mode(bool &battery_mode);
 
@@ -292,6 +302,18 @@ class RidenModbus
     double v_in_multi = 100.0;
     double v_max = 61.0;
     double i_max = 30.1;
+
+    // Per-range current divisor: [0]=6A, [1]=12A. {0,0} means fixed range (no switch).
+    // Selectable current ranges (RD6012P). Empty (multiplier 0) = fixed range.
+    CurrentRange i_multi_ranges[2] = {};
+    // Range-switching models pick i_multi from the table by the CurrentRange register.
+    void update_i_multi_for_range(uint16_t range)
+    {
+        if (i_multi_ranges[0].multiplier != 0.0)
+            i_multi = i_multi_ranges[range & 1].multiplier;
+    }
+
+    uint8_t precision = 2; // precision to display for V/I on the control page (default)
 
     /**
      *  Wait until no transaction is active or timeout.

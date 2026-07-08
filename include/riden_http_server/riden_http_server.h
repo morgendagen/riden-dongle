@@ -45,6 +45,7 @@ class RidenHttpServer
     void handle_status_get();
     void handle_set_i();
     void handle_set_v();
+    void handle_set_i_range();
     void handle_toggle_out();
     
     void handle_modbus_qps();
