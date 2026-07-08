@@ -15,10 +15,7 @@ It supports the following Riden power supplies:
 - RD6024
 - RD6030
 - RD6006P
-- RD6012P
-
-The following is not yet integrated, as it is very new. If anyone has that model and can help testing, please get in touch.
-
+- RD6012P (testers required, we may have bad current readings in some current ranges)
 - RD6018P
 
 The firmware has been tested with various tools and libraries:
@@ -27,6 +24,7 @@ The firmware has been tested with various tools and libraries:
   - Riden v1.28
   - Riden v1.41
   - Riden v1.47 (6030)
+  - Riden v1.48 (6018P)
   - Unisoft v1.41.1k (6006)
   - Unisoft v1.37.1p (6012)
 - Modbus TCP
