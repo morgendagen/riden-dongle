@@ -116,6 +116,7 @@ bool RidenHttpServer::begin()
     server.on("/control/", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_control_get, this));
     server.on("/status", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_status_get, this));
     server.on("/set_i", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_set_i, this));
+    server.on("/set_i_range", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_set_i_range, this));
     server.on("/set_v", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_set_v, this));
     server.on("/toggle_out", HTTPMethod::HTTP_GET, std::bind(&RidenHttpServer::handle_toggle_out, this));
     server.on("/disconnect_client/", HTTPMethod::HTTP_POST, std::bind(&RidenHttpServer::handle_disconnect_client_post, this));
@@ -397,7 +398,6 @@ void RidenHttpServer::handle_reboot_dongle_get()
     delay(1000);
 }
 
-
 void RidenHttpServer::handle_control_get(void)
 {
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -433,6 +433,12 @@ void RidenHttpServer::handle_status_get(void)
         s += ",\"wh\": " + String(all_values.wh, 3);
         s += ",\"max_v\": " + String(modbus.get_max_voltage(), 3);
         s += ",\"max_c\": " + String(modbus.get_max_current(), 3);
+        s += ",\"i_range\": " + String(all_values.current_range);
+        s += ",\"range_button\": " + String(modbus.supports_current_ranges() ? "true" : "false");
+        if (modbus.supports_current_ranges()) {
+            s += ",\"ranges\": [\"" + String(modbus.get_current_range_label(0)) + "\",\"" + String(modbus.get_current_range_label(1)) + "\"]";
+        }
+        s += ",\"precision\": " + String(modbus.get_precision());
         s += "}";
         server.send(200, "application/json", s);
     } else {
@@ -441,11 +447,22 @@ void RidenHttpServer::handle_status_get(void)
     server.sendContent("");
 }
 
-void RidenHttpServer::handle_set_i() 
+void RidenHttpServer::handle_set_i()
 {
     String s = server.arg("plain");
     double v = std::strtod(s.c_str(), nullptr);
     if (modbus.is_connected() && modbus.set_current_set(v)) {
+        server.send(200, "text/plain", "OK");
+    } else {
+        server.send(500, "text/plain", "Failed to set");
+    }
+}
+
+void RidenHttpServer::handle_set_i_range()
+{
+    String s = server.arg("plain");
+    uint16_t range = (uint16_t)strtoul(s.c_str(), nullptr, 10); // 0 = 6A, 1 = 12A
+    if (modbus.is_connected() && modbus.set_current_range(range)) {
         server.send(200, "text/plain", "OK");
     } else {
         server.send(500, "text/plain", "Failed to set");
@@ -588,7 +605,7 @@ void RidenHttpServer::send_connected_clients()
     server.sendContent("                <tbody>");
     for (auto const &ip : vxi_server.get_connected_clients()) {
         send_client_row(ip, vxi11_protocol);
-    }    
+    }
     for (auto const &ip : scpi.get_connected_clients()) {
         send_client_row(ip, scpi_protocol);
     }
@@ -706,4 +723,3 @@ const char *RidenHttpServer::get_serial_number()
     sprintf(serial_number_string, "%08u", serial_number);
     return serial_number_string;
 }
-

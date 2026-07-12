@@ -77,7 +77,10 @@ bool RidenModbus::begin()
         this->type = "RD6012P";
         this->v_multi = 1000;
         this->p_multi = 1000;
-        // i_multi is not constant!
+        // i_multi is not constant (depends on the current range)
+        this->i_multi_ranges[0] = {10000.0, "6A"};  // 6 A range: 0.1 mA units
+        this->i_multi_ranges[1] = {1000.0, "12A"};  // 12 A range: 1 mA units
+        this->precision = 3;               // +1 over default for the higher resolution
         this->i_max = 12.1;
     } else if (60060 <= id && id <= 60064) {
         this->type = "RD6006";
@@ -148,6 +151,10 @@ bool RidenModbus::get_all_values(AllValues &all_values, bool subset)
             return false;
         }
     }
+
+    // Range-switching models (RD6012P) pick the current divisor from a per-range
+    // table by the CurrentRange register; it can change at runtime, so refresh it.
+    update_i_multi_for_range(values[+Register::CurrentRange]);
 
     all_values.system_temperature_celsius = values_to_temperature(&(values[+Register::SystemTemperatureCelsius_Sign]));
     all_values.system_temperature_fahrenheit = values_to_temperature(&(values[+Register::SystemTemperatureFarhenheit_Sign]));
@@ -325,6 +332,15 @@ bool RidenModbus::get_current_range(uint16_t &current_range)
 {
     // TODO[pdr] conversion
     return read_holding_registers(Register::CurrentRange, &current_range);
+}
+
+bool RidenModbus::set_current_range(const uint16_t current_range)
+{
+    if (!supports_current_ranges()) {
+        return false; // model has no switchable current range (no i_multi_ranges)
+    }
+    // 6A / 12 A range for RD6012P.
+    return write_holding_register(Register::CurrentRange, current_range);
 }
 
 bool RidenModbus::is_battery_mode(bool &battery_mode)
@@ -650,12 +666,22 @@ bool RidenModbus::read_current(const Register reg, double &current)
     if (!read_holding_registers(reg, &value)) {
         return false;
     }
+    if (supports_current_ranges()) {
+        uint16_t range;
+        if (read_holding_registers(Register::CurrentRange, &range))
+            update_i_multi_for_range(range);
+    }
     current = value_to_current(value);
     return true;
 }
 
 bool RidenModbus::write_current(const Register reg, const double current)
 {
+    if (supports_current_ranges()) {
+        uint16_t range;
+        if (read_holding_registers(Register::CurrentRange, &range))
+            update_i_multi_for_range(range);
+    }
     const uint16_t value = current_to_value(current);
     return write_holding_register(reg, value);
 }
