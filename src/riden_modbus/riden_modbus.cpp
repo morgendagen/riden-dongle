@@ -70,6 +70,7 @@ bool RidenModbus::begin()
         this->p_multi = 1000;
         this->i_multi = 1000;
         this->i_max = 18.1;
+        this->precision = 3;               // +1 over default for the higher resolution
     } else if (60120 <= id && id <= 60124) {
         this->type = "RD6012";
         this->i_max = 12.1;
