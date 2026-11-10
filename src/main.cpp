@@ -151,9 +151,7 @@ static bool connect_wifi(const char *hostname)
         experimental::ESP8266WiFiGratuitous::stationKeepAliveSetIntervalMs();
         if (hostname != nullptr) {
             if (!MDNS.begin(hostname)) {
-                while (true) {
-                    delay(100);
-                }
+                LOG_LN("mDNS failed; continuing with services by IP");
             }
             String tz = riden_config.get_timezone_spec();
             if (tz.length() > 0) {
@@ -179,6 +177,7 @@ static bool connect_wifi(const char *hostname)
 
 void loop()
 {
+    if (http_server.handle_pending_restart()) return;
     if (connected) {
         if (has_time && !did_update_time) {
             LOG_LN("Setting PSU clock");
@@ -200,6 +199,7 @@ void loop()
         vxi_server.loop();
     }
     http_server.loop();
+    if (http_server.restart_pending()) return;
     ArduinoOTA.handle();
 }
 

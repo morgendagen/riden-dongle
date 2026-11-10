@@ -10,6 +10,7 @@
 #include <vxi11_server/vxi_server.h>
 
 #include <ESP8266WebServer.h>
+#include <riden_logging/firmware_update_state.h>
 
 #define HTTP_RAW_PORT 80
 
@@ -23,6 +24,8 @@ class RidenHttpServer
     bool begin();
     void loop(void);
     uint16_t port();
+    bool handle_pending_restart();
+    bool restart_pending() const { return firmware_update_state().restart_pending; }
 
   private:
     RidenModbus &modbus;
@@ -39,6 +42,7 @@ class RidenHttpServer
     void handle_reboot_dongle_get();
     void handle_firmware_update_post();
     void finish_firmware_update_post();
+    void request_restart();
     void handle_lxi_identification();
     void handle_not_found();
     void handle_control_get();
