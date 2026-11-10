@@ -5,6 +5,7 @@
 #include "http_static.h"
 #include <riden_config/riden_config.h>
 #include <riden_http_server/riden_http_server.h>
+#include <riden_http_server/setpoint_input.h>
 #include <riden_logging/riden_logging.h>
 #include <vxi11_server/vxi_server.h>
 
@@ -450,7 +451,11 @@ void RidenHttpServer::handle_status_get(void)
 void RidenHttpServer::handle_set_i()
 {
     String s = server.arg("plain");
-    double v = std::strtod(s.c_str(), nullptr);
+    double v;
+    if (!parse_setpoint_input(s, modbus.get_max_current(), v)) {
+        server.send(400, "text/plain", "Invalid current: expected a finite decimal within the PSU range");
+        return;
+    }
     if (modbus.is_connected() && modbus.set_current_set(v)) {
         server.send(200, "text/plain", "OK");
     } else {
@@ -461,7 +466,11 @@ void RidenHttpServer::handle_set_i()
 void RidenHttpServer::handle_set_i_range()
 {
     String s = server.arg("plain");
-    uint16_t range = (uint16_t)strtoul(s.c_str(), nullptr, 10); // 0 = 6A, 1 = 12A
+    if (!modbus.supports_current_ranges() || (s != "0" && s != "1")) {
+        server.send(400, "text/plain", "Invalid or unsupported current range");
+        return;
+    }
+    uint16_t range = s == "1" ? 1 : 0;
     if (modbus.is_connected() && modbus.set_current_range(range)) {
         server.send(200, "text/plain", "OK");
     } else {
@@ -472,7 +481,11 @@ void RidenHttpServer::handle_set_i_range()
 void RidenHttpServer::handle_set_v()
 {
     String s = server.arg("plain");
-    double v = std::strtod(s.c_str(), nullptr);
+    double v;
+    if (!parse_setpoint_input(s, modbus.get_max_voltage(), v)) {
+        server.send(400, "text/plain", "Invalid voltage: expected a finite decimal within the PSU range");
+        return;
+    }
     if (modbus.is_connected() && modbus.set_voltage_set(v)) {
         server.send(200, "text/plain", "OK");
     } else {

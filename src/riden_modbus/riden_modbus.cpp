@@ -7,6 +7,7 @@
 #include <riden_modbus/riden_modbus.h>
 
 #include <Arduino.h>
+#include <cmath>
 #ifndef MOCK_RIDEN
 #ifdef MODBUS_USE_SOFWARE_SERIAL
 #include <SoftwareSerial.h>
@@ -336,7 +337,7 @@ bool RidenModbus::get_current_range(uint16_t &current_range)
 
 bool RidenModbus::set_current_range(const uint16_t current_range)
 {
-    if (!supports_current_ranges()) {
+    if (!supports_current_ranges() || current_range > 1) {
         return false; // model has no switchable current range (no i_multi_ranges)
     }
     // 6A / 12 A range for RD6012P.
@@ -656,6 +657,8 @@ bool RidenModbus::read_voltage(const Register reg, double &voltage)
 
 bool RidenModbus::write_voltage(const Register reg, const double voltage)
 {
+    if (!std::isfinite(voltage) || voltage < 0 || voltage > v_max || voltage * v_multi > 65535.0)
+        return false;
     const uint16_t value = voltage_to_value(voltage);
     return write_holding_register(reg, value);
 }
@@ -677,11 +680,13 @@ bool RidenModbus::read_current(const Register reg, double &current)
 
 bool RidenModbus::write_current(const Register reg, const double current)
 {
+    if (!std::isfinite(current) || current < 0 || current > i_max) return false;
     if (supports_current_ranges()) {
         uint16_t range;
-        if (read_holding_registers(Register::CurrentRange, &range))
-            update_i_multi_for_range(range);
+        if (!read_holding_registers(Register::CurrentRange, &range)) return false;
+        update_i_multi_for_range(range);
     }
+    if (current * i_multi > 65535.0) return false;
     const uint16_t value = current_to_value(current);
     return write_holding_register(reg, value);
 }
