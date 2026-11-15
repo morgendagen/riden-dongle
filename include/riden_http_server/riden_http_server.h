@@ -43,6 +43,7 @@ class RidenHttpServer
     void handle_not_found();
     void handle_control_get();
     void handle_status_get();
+    bool send_status(const char *failure_message);
     void handle_set_i();
     void handle_set_v();
     void handle_set_i_range();

@@ -93,6 +93,17 @@ class RidenModbus
   public:
     friend class RidenModbusBridge;
 
+    struct Diagnostics {
+        uint32_t recovery_waits = 0;
+        uint32_t discarded_bytes = 0;
+        uint32_t rx_overruns = 0;
+        uint32_t rx_errors = 0;
+        uint32_t local_read_retries = 0;
+        uint32_t local_recovered_reads = 0;
+        uint32_t local_read_failures = 0;
+    };
+    const Diagnostics &get_diagnostics() const { return diagnostics; }
+
     bool begin();
     bool loop();
 
@@ -292,9 +303,15 @@ class RidenModbus
 
   private:
     ModbusRTU modbus;
-    unsigned long timeout = 500; // milliseconds
     bool initialized = false;
     String type;
+    Diagnostics diagnostics;
+    uint32_t last_uart_completion_us = 0;
+    bool uart_completed = false;
+    bool uart_recovery_pending = false;
+
+    void service_uart();
+    bool prepare_request();
 
     double v_multi = 100.0;
     double i_multi = 100.0;
