@@ -1,0 +1,28 @@
+name: Setpoint checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  esp12e-and-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PlatformIO
+        run: python -m pip install -r requirements.txt
+      - name: Build ESP-12E / ESP-12F
+        run: pio run -e esp12e
+        env:
+          VERSION: upstream-setpoint
+      - name: Run production-code regression tests
+        run: python test/host/run_setpoint_tests.py
