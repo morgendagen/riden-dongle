@@ -312,23 +312,40 @@ void RidenHttpServer::handle_config_post()
 void RidenHttpServer::handle_firmware_update_post()
 {
     HTTPUpload &upload = server.upload();
+    auto &state = firmware_update_state();
 
     if (upload.status == UPLOAD_FILE_START) {
-        // if(_debug) Serial.setDebugOutput(true);
-        uint32_t maxSketchSpace;
-
-        WiFiUDP::stopAll();
-        maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-
-        if (!Update.begin(maxSketchSpace)) { // start with max available size
+        state.started = true;
+        state.finished = state.failed = state.success = false;
+        state.received_bytes = state.written_bytes = 0;
+        const uint32_t free_space = ESP.getFreeSketchSpace();
+        const uint32_t max_space = free_space > 0x1000 ? (free_space - 0x1000) & 0xFFFFF000 : 0;
+        if (!Update.begin(max_space)) {
+            state.failed = true;
             Update.end();
         }
     } else if (upload.status == UPLOAD_FILE_WRITE) {
-        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        state.received_bytes += upload.currentSize;
+        if (!state.started || state.failed) {
+            state.failed = true;
+        } else {
+            const size_t written = Update.write(upload.buf, upload.currentSize);
+            state.written_bytes += written;
+            if (written != upload.currentSize) state.failed = true;
         }
     } else if (upload.status == UPLOAD_FILE_END) {
-        Update.end(true);
+        state.finished = true;
+        if (state.started && !state.failed && state.received_bytes &&
+            state.received_bytes == state.written_bytes) {
+            state.success = Update.end(true);
+        } else {
+            Update.end();
+            state.success = false;
+        }
+        state.failed = state.failed || !state.success || Update.hasError();
     } else if (upload.status == UPLOAD_FILE_ABORTED) {
+        state.failed = true;
+        state.success = false;
         Update.end();
     }
     yield();
@@ -336,26 +353,51 @@ void RidenHttpServer::handle_firmware_update_post()
 
 void RidenHttpServer::finish_firmware_update_post()
 {
-    if (Update.hasError()) {
+    const auto &state = firmware_update_state();
+    if (!state.started || !state.finished || !state.success || state.failed || Update.hasError()) {
         server.client().setNoDelay(true);
+        server.sendHeader("Connection", "close");
         server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-        server.send(200, "text/html", HTML_HEADER);
+        server.send(500, "text/html", HTML_HEADER);
         server.sendContent_P(HTML_DONGLE_UPDATE_1);
-        server.sendContent(Update.getErrorString());
+        server.sendContent(Update.hasError() ? Update.getErrorString() : String("Firmware upload did not complete"));
         server.sendContent_P(HTML_DONGLE_UPDATE_2);
         server.sendContent_P(HTML_FOOTER);
         server.sendContent("");
     } else {
         server.client().setNoDelay(true);
-        server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        server.sendHeader("Connection", "close");
+        server.setContentLength(strlen_P(HTML_HEADER) + strlen_P(HTML_REBOOTING_DONGLE_UPDATE_BODY) + strlen_P(HTML_FOOTER));
         server.send(200, "text/html", HTML_HEADER);
         server.sendContent_P(HTML_REBOOTING_DONGLE_UPDATE_BODY);
         server.sendContent_P(HTML_FOOTER);
         server.sendContent("");
-        delay(100);
-        server.client().stop();
-        ESP.restart();
+        request_restart();
     }
+}
+
+void RidenHttpServer::request_restart()
+{
+    auto &state = firmware_update_state();
+    if (!state.restart_pending) state.restart_requested_ms = millis();
+    state.restart_pending = true;
+}
+
+bool RidenHttpServer::handle_pending_restart()
+{
+    const auto &state = firmware_update_state();
+    if (!state.restart_pending) return false;
+    // Let the HTTP handler and its parser unwind, then allow response ACKs.
+    if (uint32_t(millis() - state.restart_requested_ms) < 500UL) {
+        delay(1);
+        return true;
+    }
+    auto client = server.client();
+    // Never let an unacknowledged browser response indefinitely defer reboot.
+    if (!client.stop(200)) client.abort();
+    WiFiUDP::stopAll();
+    ESP.restart();
+    return true;
 }
 
 void RidenHttpServer::handle_disconnect_client_post()
@@ -393,8 +435,7 @@ void RidenHttpServer::handle_reboot_dongle_get()
     }
     server.sendContent_P(HTML_FOOTER);
     server.sendContent("");
-    delay(500);
-    ESP.reset();
+    request_restart();
     delay(1000);
 }
 
